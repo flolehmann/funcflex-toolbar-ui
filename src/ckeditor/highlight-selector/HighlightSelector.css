@@ -1,0 +1,7 @@
+.comment {
+    background-color: rgba(255, 191, 0, 0.4);
+}
+
+.comment.selected {
+    background-color: rgba(255, 191, 0, 0.9);
+}
