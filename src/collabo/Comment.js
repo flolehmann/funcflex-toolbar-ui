@@ -1,10 +1,11 @@
 import React, {useContext, useState, forwardRef, useEffect} from 'react';
-import {Button, Card, Col, Dropdown, Form, Row} from "react-bootstrap";
+import {Button, Card, Col, Dropdown, Form, Image, Row} from "react-bootstrap";
 import {CheckLg, ThreeDotsVertical} from 'react-bootstrap-icons';
-import { CommentsSidebarContext } from "../App";
+import {CommentsSidebarContext, UserContext} from "../App";
 import Autosuggest from 'react-autosuggest';
 import CommentInput from "./CommentForm/CommentInput";
 import CommentForm from "./CommentForm/CommentForm";
+import './Comment.css';
 
 const dateHelper = (date) => {
     const formatNumber = (number) => {
@@ -17,27 +18,31 @@ const dateHelper = (date) => {
     const [month, day, year] = [formatNumber(date.getMonth() + 1), formatNumber(date.getDate()), date.getFullYear()];
     const [hour, minutes, seconds] = [formatNumber(date.getHours()), formatNumber(date.getMinutes()), formatNumber(date.getSeconds())];
 
-    return day + "." + month + "." + year + "@" + hour + ":" + minutes;
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dez"];
+
+    return hour + ":" + minutes + " " + day + " " + months[month-1];
 };
 
 const CustomOptionToggle = React.forwardRef(({ children, onClick }, ref) => (
-    <a
-        href=""
-        ref={ref}
-        onClick={e => {
-            e.preventDefault();
-            onClick(e);
-        }}
+    <Button variant="outline-light"
+            ref={ref}
+            onClick={e => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.nativeEvent.stopImmediatePropagation();
+                onClick(e);
+            }}
     >
         <ThreeDotsVertical color="gray" />
         {children}
-    </a>
+    </Button>
 ));
 
 
 export default Comment = forwardRef((props, ref) => {
 
     const csc = useContext(CommentsSidebarContext);
+    const usc = useContext(UserContext);
 
     const comment = props.comment;
     const selected = props.selected;
@@ -50,19 +55,14 @@ export default Comment = forwardRef((props, ref) => {
     const id = comment.id;
     const data = comment.data;
 
-    const user = data.user || "Anonymous";
+    const user = data.user;
+    const userName = data.user.name;
     const text = data.text || "";
 
     let style = {};
 
-    const agentNames = [
-        {
-            name: '@agent'
-        },
-        {
-            name: '@ai'
-        }
-    ];
+    const suggestions = usc.userState.users;
+    const me = usc.userState.me;
 
     const date = dateHelper(new Date(data.date));
 
@@ -78,19 +78,20 @@ export default Comment = forwardRef((props, ref) => {
         style = { position: "absolute", top: top + "px" };
         console.log("selected?" + selected)
         if (selected) {
-            style["left"] = "-15px";
+            style["left"] = "-50px";
         }
     }
 
     const replies = comment.replies.length === 0 ? null : comment.replies.map(reply => {
-        console.log(reply);
         const date = dateHelper(new Date(reply.data.time));
         const user = reply.data.user;
+        const userName = user.name;
         const html = reply.data.text;
 
         const editReplyForm = <CommentForm comment={reply}
                                            top={top}
-                                           suggestions={agentNames}
+                                           suggestions={suggestions}
+                                           me={me}
                                            changedHeightHandler={changedHeightHandler}
                                            selectedCard={selectedCard}
                                            selectHandler={selectHandler}
@@ -116,10 +117,21 @@ export default Comment = forwardRef((props, ref) => {
             </Dropdown.Menu>
         </Dropdown>
 
-        return <div key={reply.id}>
-            { options }
-            <div>{reply.id}</div>
-            <div>{user} {date}</div>
+        return <div className={"reply"} key={reply.id}>
+            <div className={"reply-title"}>
+                <div className={"comment-info-left"}>
+                    <div className={"avatar"}>
+                        <Image src={user.picture} roundedCircle/>
+                    </div>
+                    <div className={"user-data"}>
+                        <div className={"user-name"}>{ userName }</div>
+                        <div className={"comment-date"}>{ date }</div>
+                    </div>
+                </div>
+                <div className={"comment-info-right"}>
+                    {options}
+                </div>
+            </div>
             {(editReply === reply.id && editReplyForm) || <div dangerouslySetInnerHTML={{__html: html}}></div>}
         </div>
     });
@@ -129,7 +141,8 @@ export default Comment = forwardRef((props, ref) => {
 
     const commentField = <CommentForm comment={comment}
                                       top={top}
-                                      suggestions={agentNames}
+                                      suggestions={suggestions}
+                                      me={me}
                                       changedHeightHandler={changedHeightHandler}
                                       isReply={firstComment}
                                       selectedCard={selectedCard}
@@ -137,7 +150,8 @@ export default Comment = forwardRef((props, ref) => {
 
     const editCommentForm = <CommentForm comment={comment}
                                          top={top}
-                                         suggestions={agentNames}
+                                         suggestions={suggestions}
+                                         me={me}
                                          changedHeightHandler={changedHeightHandler}
                                          selectedCard={selectedCard}
                                          selectHandler={selectHandler}
@@ -147,10 +161,10 @@ export default Comment = forwardRef((props, ref) => {
 
     const select = () => {
         if (!selected) {
-            csc.setCurrentSelectedComment(id, user);
+            csc.setCurrentSelectedComment(id, userName);
             selectHandler(id);
         } else {
-            csc.unsetCurrentSelectedComment(id, user, true);
+            csc.unsetCurrentSelectedComment(id, userName, true);
             selectHandler();
         }
     }
@@ -159,7 +173,6 @@ export default Comment = forwardRef((props, ref) => {
         <Dropdown.Toggle as={CustomOptionToggle}>
         </Dropdown.Toggle>
         <Dropdown.Menu size="sm" title="">
-            <Dropdown.Header>Options</Dropdown.Header>
             <Dropdown.Item onClick={e => {
                 setIsEdit(true);
                 e.stopPropagation();
@@ -173,22 +186,33 @@ export default Comment = forwardRef((props, ref) => {
         </Dropdown.Menu>
     </Dropdown>
 
+    const className = selected ? "comment-card selected" : "comment-card";
+
     return (
-        <Card ref={ref} id={id} className={"comment-card"} style={style} onClick={select}>
-            { firstComment && <Button variant="light" onClick={e => {
-                csc.approveComment(id);
-                e.stopPropagation();
-                e.nativeEvent.stopImmediatePropagation();
-            }}><CheckLg color="royalBlue"/></Button> }
-            { firstComment && options}
-            <Card.Title>{ user } {id} </Card.Title>
-            <Card.Subtitle className="mb-2 text-muted">{ date }</Card.Subtitle>
+        <Card ref={ref} id={id} className={className} style={style} onClick={select}>
+            <Card.Title>
+                <div className={"comment-info-left"}>
+                    <div className={"avatar"}>
+                        <Image src={user.picture} roundedCircle/>
+                    </div>
+                    <div className={"user-data"}>
+                        <div className={"user-name"}>{userName}</div>
+                        <div className={"comment-date"}>{ date }</div>
+                    </div>
+                </div>
+                <div className={"comment-info-right"}>
+                    { firstComment && <Button variant="light" onClick={e => {
+                        csc.approveComment(id);
+                        e.stopPropagation();
+                        e.nativeEvent.stopImmediatePropagation();
+                    }}><CheckLg color="royalBlue"/></Button> }
+                    { firstComment && options}
+                </div>
+            </Card.Title>
             { (isEdit && editCommentForm) || firstComment }
-            <hr />
             <div>
                 { replies }
             </div>
-            <hr />
             { commentField }
         </Card>
     );

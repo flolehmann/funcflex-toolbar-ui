@@ -13,6 +13,7 @@ function CommentForm(props) {
     const comment = props.comment;
     const top = props.top;
     const suggestions = props.suggestions;
+    const me = props.me;
     const changedHeightHandler = props.changedHeightHandler;
     const isReply = props.isReply || false;
     const isEdit = props.isEdit || false;
@@ -31,6 +32,7 @@ function CommentForm(props) {
     const [inputText, setInputText] = useState(text);
     const [resetTrigger, setResetTrigger] = useState("");
     const [isFocused, setIsFocused] = useState(false);
+    const [isTyping, setIsTyping] = useState(false);
 
     useEffect(() => {
         changedHeightHandler({
@@ -39,8 +41,17 @@ function CommentForm(props) {
         });
     }, [isFocused]);
 
+    useEffect(() => {
+        const text = inputText.replace("<br>", "");
+        if (text.length > 0) {
+            setIsTyping(true);
+        } else {
+            setIsTyping(false);
+        }
+    }, [inputText])
+
     return <Form>
-        <Form.Group className="mb-3" controlId="formComment" onClick={e => {
+        <Form.Group className={"form-group"} controlId="formComment" onClick={e => {
             e.stopPropagation();
             e.nativeEvent.stopImmediatePropagation();
         }}>
@@ -48,6 +59,8 @@ function CommentForm(props) {
                           inputHtml={inputText}
                           resetTrigger={resetTrigger}
                           interactiveNames={suggestions}
+                          me={me}
+                          isTyping={isTyping}
                           onFocusHandler={e => {
                               console.log(e)
                               setIsFocused(true);
@@ -62,7 +75,7 @@ function CommentForm(props) {
             />
         </Form.Group>
         {(isFocused || isEdit || text === "") && <Row>
-            <Col>
+            <Col className={"comment-control"}>
                 <Button size="sm" variant="primary" disabled={!inputText} onClick={e => {
                     if (!isEdit) {
                         if (!isReply) {
@@ -91,8 +104,6 @@ function CommentForm(props) {
                     e.stopPropagation();
                     e.nativeEvent.stopImmediatePropagation();
                 }}>{isEdit && "Save" || (isReply ? "Reply" : "Comment")}</Button>
-            </Col>
-            <Col>
                 <Button size="sm" variant="outline-secondary" onClick={e => {
                     if (!isEdit) {
                         if (!isReply) {

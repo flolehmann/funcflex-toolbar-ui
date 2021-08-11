@@ -7,10 +7,6 @@ import CommentInput from "./CommentForm/CommentInput";
 
 function CommentBalloon(props) {
 
-    // console.log(props.caretPosition);
-    // console.log(props.isVisible);
-    // console.log(props.caretPosition);
-
     const isVisible = props.isVisible && props.caretPosition;
 
     const top = props.caretPosition ? props.caretPosition.top : 0;
@@ -33,7 +29,7 @@ function CommentBalloon(props) {
                  zIndex: 2000,
                  width: "30px",
                  height: balloonHeight + "px",
-                 top: (top - yOffsetBalloon + scrollYOffset) + "px",
+                 top: (top - yOffsetBalloon - props.ckEditorOffsetTop + scrollYOffset) + "px",
                  left: (left - 15) + "px"
              }}>
             <ChatLeftFill />

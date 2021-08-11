@@ -1,10 +1,9 @@
-import React, {Component, useReducer, useRef, useState} from 'react';
+import React, {useEffect, useReducer, useRef, useState} from 'react';
 
 import { CKEditor } from '@ckeditor/ckeditor5-react';
 import { nanoid } from 'nanoid'
 
 // NOTE: Use the editor from source (not a build)!
-import ClassicEditor from '@ckeditor/ckeditor5-editor-classic/src/classiceditor';
 import DecoupledEditor from '@ckeditor/ckeditor5-editor-decoupled/src/decouplededitor';
 
 import Essentials from '@ckeditor/ckeditor5-essentials/src/essentials';
@@ -21,16 +20,19 @@ import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import "./ckeditor/highlight-selector/HighlightSelector.css";
 import CommentBalloon from "./collabo/CommentBalloon";
+import Topbar from "./collabo/Topbar";
 
 const editorConfiguration = {
   plugins: [ Essentials, Bold, Italic, Paragraph, HighlightSelector ],
   toolbar: [ 'bold', 'italic']
 };
 
-//const data = '<p>Hello <annotation-start name="comment:uzRaHkIJKE41z7vvzT9XL"></annotation-start>from CK<annotation-end name="comment:uzRaHkIJKE41z7vvzT9XL"></annotation-end>Edito<annotation-start name="comment:S2E4isI2NsvqAa6oE5ax7"></annotation-start>r 5!</p><p>h3h<annotation-end name="comment:S2E4isI2NsvqAa6oE5ax7"></annotation-end>3<annotation-start name="comment:NLnz9xWNvaXe806U24eqr:h3h3"></annotation-start> y<annotation-end name="comment:NLnz9xWNvaXe806U24eqr:h3h3"></annotation-end>0</p>';
-//const comments = {};
+const data = '<p>Hello World</p>';
 
-const data = '<p> Hello World</p>';
+const prototypeConfig = {
+  documentName: "Text Summary",
+  documentDescription: "Delegate the agent to summarize the text using the interactive comments.",
+};
 
 const initialCommentState = {
     comments: {},
@@ -41,6 +43,31 @@ const initialCommentState = {
     commentRects: {},
     selectedCommentId: ""
 };
+
+const initialMeState =  {
+    id: "mocked-me-id",
+    type: "human",
+    name: "Human User",
+    tag: "@human-user",
+    picture: process.env.PUBLIC_URL + "avatar-user.png",
+    online: true
+};
+
+const initialUserState = {
+    users: [
+        initialMeState,
+        {
+            id: "mocked-agent-id",
+            type: "ai",
+            name: "Agent",
+            tag: "@agent",
+            picture: process.env.PUBLIC_URL + "avatar-agent.png",
+            online: false
+        }
+    ],
+    me: initialMeState
+}
+
 
 const commentReducer = (state, action) => {
     const id = action.payload.id || action.payload.commentId || null;
@@ -161,12 +188,57 @@ const commentReducer = (state, action) => {
     }
 };
 
+
+const userReducer = (state, action) => {
+    const id = action.payload.id || action.payload.userId || null;
+    const newUser = action.payload.user || action.payload.newUser || null;
+    const newMe = action.payload.me || null;
+    const newOnline = action.payload.online || false;
+
+    const users = state.users;
+    const me = state.me;
+
+    let userIndex;
+
+    switch (action.type) {
+        case 'setOnline':
+            userIndex = users.findIndex(user => user.id === id);
+            users[userIndex].online = newOnline;
+            console.log("setOnline", id, users[userIndex]);
+            return { ...state,
+                users: [...users]
+            }
+        case 'adduser':
+            return { ...state,
+            users: [...users, newUser]
+        };
+        case 'setMe':
+            return { ...state,
+                me: newMe
+            };
+        default:
+            throw new Error();
+    }
+};
+
 export const CommentsSidebarContext = React.createContext(null);
+export const UserContext = React.createContext(null);
 
 function App(){
 
     const ckEditorRef = useRef(null);
-    const ckEditorWidth = ckEditorRef.current ? ckEditorRef.current.offsetWidth : 0;
+    const sidebarRef = useRef(null);
+
+    let ckEditorWidth = 0;
+    let ckEditorOffsetTop = 0;
+    if (ckEditorRef.current) {
+        const style = ckEditorRef.current.currentStyle || window.getComputedStyle(ckEditorRef.current);
+        const paddingLeft = parseFloat(style.paddingLeft);
+        ckEditorWidth = ckEditorRef.current.offsetWidth - paddingLeft;
+        ckEditorOffsetTop = ckEditorRef.current.offsetTop;
+    }
+
+    let sidebarOffsetTop = sidebarRef.current ? sidebarRef.current.offsetTop : 0;
 
     const [init, setInit] = useState(false);
     const [editor, setEditor] = useState(null);
@@ -175,7 +247,9 @@ function App(){
 
     const [showCommentBalloon, setShowCommentBalloon] = useState(false);
 
-    const [commentState, dispatch] = useReducer(commentReducer, initialCommentState);
+    const [commentState, commentDispatch] = useReducer(commentReducer, initialCommentState);
+    const [userState, userDispatch] = useReducer(userReducer, initialUserState);
+
 
     const initialize = () => {
         if (!init) {
@@ -194,8 +268,6 @@ function App(){
         }
     }
 
-    console.log(commentState);
-
     const getPlugin = () => {
         console.log("getPlugin")
         if (!editor || highlightSelector) {
@@ -208,8 +280,8 @@ function App(){
         if (!highlightSelector) {
             return;
         }
-        const user = "user";
-        const id = highlightSelector.add("comment", user, onMarkerChange);
+        const user = userState.me;
+        const id = highlightSelector.add("comment", user.name, onMarkerChange);
         const newComment = {
             id: id,
             data: {
@@ -220,7 +292,7 @@ function App(){
             deletedReplies: []
         }
         const commentRects = getCommentRects();
-        dispatch({
+        commentDispatch({
             type: 'addComment',
             payload: {
                 newComment: newComment,
@@ -233,7 +305,7 @@ function App(){
         const newComment = commentState.newComments[id];
         newComment.data.text = text;
 
-        dispatch({
+        commentDispatch({
             type: 'postComment',
             payload: {
                 newComment: newComment
@@ -242,7 +314,7 @@ function App(){
     }
 
     const editComment = (id, text) => {
-        dispatch({
+        commentDispatch({
             type: 'editComment',
             payload: {
                 id: id,
@@ -256,11 +328,11 @@ function App(){
             return null;
         }
         const cancelledComment = commentState.newComments[id];
-        const user = cancelledComment.data.user;
+        const user = cancelledComment.data.user.name;
         highlightSelector.remove("comment", id, user);
         const commentRects = getCommentRects();
         console.log("DISPATCH CANCEL COMMENT")
-        dispatch({
+        commentDispatch({
             type: 'cancelComment',
             payload: {
                 canceledCommentId: id,
@@ -275,11 +347,11 @@ function App(){
         }
         console.log(commentState);
         const comment = commentState.comments[id];
-        const user = comment.data.user;
+        const user = comment.data.user.name;
 
         highlightSelector.remove("comment", id, user);
         const commentRects = getCommentRects();
-        dispatch({
+        commentDispatch({
             type: 'approveComment',
             payload: {
                 id: id,
@@ -294,11 +366,11 @@ function App(){
         }
         console.log(commentState);
         const comment = commentState.comments[id];
-        const user = comment.data.user;
+        const user = comment.data.user.name;
 
         highlightSelector.remove("comment", id, user);
         const commentRects = getCommentRects();
-        dispatch({
+        commentDispatch({
             type: 'deleteComment',
             payload: {
                 id: id,
@@ -318,7 +390,7 @@ function App(){
             replies: [],
         };
 
-        dispatch({
+        commentDispatch({
             type: 'postReply',
             payload: {
                 id: id,
@@ -329,7 +401,7 @@ function App(){
 
     const editReply = (commentId, replyId, text) => {
         console.log(commentId, replyId, text)
-        dispatch({
+        commentDispatch({
             type: 'editReply',
             payload: {
                 commentId: commentId,
@@ -340,7 +412,7 @@ function App(){
     }
 
     const deleteReply = (commentId, replyId) => {
-        dispatch({
+        commentDispatch({
             type: 'deleteReply',
             payload: {
                 commentId: commentId,
@@ -374,7 +446,7 @@ function App(){
         const commentRects = getCommentRects();
         //console.log(commentRects);
         //console.log(commentState)
-        dispatch({
+        commentDispatch({
             type: 'updateCommentRects',
             payload: {
                 commentRects: commentRects
@@ -383,14 +455,23 @@ function App(){
     }
 
     const setSelectedCommentId = (selectedCommentId) => {
-        console.log("DISPATCHING", "setSelectedCommentId", selectedCommentId);
-        dispatch({
+        commentDispatch({
             type: 'selectCommentMarker',
             payload: {
                 selectedCommentId: selectedCommentId
             }
-        })
+        });
     }
+
+    const setUserOnline = (userId, online) => {
+        userDispatch({
+            type: 'setOnline',
+            payload: {
+                id: userId,
+                online: online
+            }
+        });
+    };
 
     const getCaretRect = (rect) => {
         setCaretRect(rect);
@@ -421,7 +502,6 @@ function App(){
         if (!highlightSelector) {
             return;
         }
-
         highlightSelector.setOnChangeData(updateCommentRects)
     }
 
@@ -467,19 +547,39 @@ function App(){
     const commentBalloon = <CommentBalloon onMouseDown={addComment}
                                            isVisible={showCommentBalloon}
                                            ckEditorWidth={ckEditorWidth}
+                                           ckEditorOffsetTop={ckEditorOffsetTop}
                                            caretPosition={caretRect} />;
 
     initialize();
 
+    useEffect(() => {
+        const timer = setTimeout(() => setUserOnline("mocked-agent-id", true), 5000);
+        return () => clearTimeout(timer);
+    }, []);
+
+    useEffect(() => {
+        // unselect comment, if comment balloon gets displayed
+        // comment ballon's visibility is defined by showCommentBalloon and an existing caretRect
+        if (showCommentBalloon && caretRect !== null && commentState.selectedCommentId) {
+            const comment = commentState.comments[commentState.selectedCommentId] || commentState.newComments[commentState.selectedCommentId];
+            unsetCurrentSelectedComment(comment.id, comment.data.user.name, true);
+            setSelectedCommentId();
+        }
+    }, [caretRect]);
+
     return (
-        <Container fluid>
-            <Row>
-                <Col xs={8}>
-                    <div className="App" ref={ckEditorRef}>
-                        { commentBalloon }
-                        <div className="document-editor">
-                            <div className="document-editor__toolbar"></div>
-                                <div className="document-editor__editable-container">
+        <UserContext.Provider value={{
+            userState: userState
+        }}>
+            <div className="App">
+                <div className="document-editor">
+                    <Topbar documentName={prototypeConfig.documentName} description={prototypeConfig.documentDescription}/>
+                    <div className="document-editor__toolbar"></div>
+                    <div className="document-editor__editable-container">
+                        <Container>
+                            <Row>
+                                <Col ref={ckEditorRef} style={{position: "relative"}} xs={8}>
+                                    { commentBalloon }
                                       <CKEditor
                                           editor={ DecoupledEditor }
                                           config={ editorConfiguration }
@@ -505,29 +605,31 @@ function App(){
                                               setShowCommentBalloon(true);
                                           } }
                                       />
-                                </div>
-                        </div>
+                                </Col>
+                                <Col ref={sidebarRef} style={{position: "relative"}} xs={4}>
+                                    <CommentsSidebarContext.Provider value={{
+                                        commentState: commentState,
+                                        cancelComment: cancelComment,
+                                        postComment: postComment,
+                                        editComment: editComment,
+                                        approveComment: approveComment,
+                                        deleteComment: deleteComment,
+                                        postReply: postReply,
+                                        editReply: editReply,
+                                        deleteReply: deleteReply,
+                                        setSelectedCommentId: setSelectedCommentId,
+                                        setCurrentSelectedComment: setCurrentSelectedComment,
+                                        unsetCurrentSelectedComment: unsetCurrentSelectedComment
+                                    }}>
+                                        <Sidebar sidebarOffsetTop={sidebarOffsetTop} commentRectsLength={Object.keys(commentState.commentRects).length}/>
+                                    </CommentsSidebarContext.Provider>
+                                </Col>
+                            </Row>
+                        </Container>
                     </div>
-                </Col>
-                <Col xs={4}>
-                    <CommentsSidebarContext.Provider value={{
-                        commentState: commentState,
-                        cancelComment: cancelComment,
-                        postComment: postComment,
-                        editComment: editComment,
-                        approveComment: approveComment,
-                        deleteComment: deleteComment,
-                        postReply: postReply,
-                        editReply: editReply,
-                        deleteReply: deleteReply,
-                        setCurrentSelectedComment: setCurrentSelectedComment,
-                        unsetCurrentSelectedComment: unsetCurrentSelectedComment
-                    }}>
-                        <Sidebar commentRectsLength={Object.keys(commentState.commentRects).length}/>
-                    </CommentsSidebarContext.Provider>
-                </Col>
-            </Row>
-        </Container>
+                </div>
+            </div>
+        </UserContext.Provider>
     );
 
 }

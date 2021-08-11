@@ -192,7 +192,8 @@ export default class HighlightSelector extends Plugin {
     }
 
     setCaretRect() {
-        this.caretRect = new Rect(document.getSelection().getRangeAt(0));
+        const range = document.getSelection().getRangeAt(0);
+        this.caretRect = new Rect(range);
     }
 
     getCaretRect() {

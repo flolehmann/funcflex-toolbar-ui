@@ -9,15 +9,17 @@ function Sidebar(props) {
 
     const csc = useContext(CommentsSidebarContext);
     const commentState = csc.commentState;
+    const setSelectedCommentId = csc.setSelectedCommentId;
 
     const [selectedComment, setSelectedComment] = useState("");
 
     const [sortedCommentRects, setSortedCommentRects] = useState({});
     const [comments, setComments] = useState({});
 
-    const [commentChangedheight, setCommentChangedHeight] = useState ({});
+    const [commentChangedHeight, setCommentChangedHeight] = useState ({});
 
     const commentRectsLength = props.commentRectsLength;
+    const sidebarOffsetTop = props.sidebarOffsetTop;
 
     useEffect(() => {
         // sort comments by CommentCard's top position
@@ -49,8 +51,10 @@ function Sidebar(props) {
     const selectCard = (id) => {
         if (id) {
             setSelectedComment(id);
+            setSelectedCommentId(id);
         } else {
             setSelectedComment("");
+            setSelectedCommentId();
         }
     };
 
@@ -101,14 +105,14 @@ function Sidebar(props) {
 
                 const selectedCommentRect = commentState.commentRects[selectedComment];
                 // default top position, in case ref to own node does not exist yet
-                cardTop = selectedCommentRect.top + scrollYOffset;
+                cardTop = selectedCommentRect.top + scrollYOffset - sidebarOffsetTop;
 
                 // if ref to own node exist, adjust positioning
                 if (ownRef) {
-                    if (((selectedCommentRect.top + scrollYOffset) - (ownRect.top + scrollYOffset) - 10) >= ownRef.offsetHeight) {
-                        cardTop = ownRect.top + scrollYOffset;
+                    if (((selectedCommentRect.top + scrollYOffset - sidebarOffsetTop) - (ownRect.top + scrollYOffset - sidebarOffsetTop) - 10) >= ownRef.offsetHeight) {
+                        cardTop = ownRect.top + scrollYOffset - sidebarOffsetTop;
                     } else {
-                        cardTop = selectedCommentRect.top + scrollYOffset - 10 - ownRef.offsetHeight;
+                        cardTop = selectedCommentRect.top + scrollYOffset - sidebarOffsetTop - 10 - ownRef.offsetHeight;
                     }
                 }
             }
@@ -123,11 +127,11 @@ function Sidebar(props) {
                     continue;
                 }
 
-                cardTop = ownRect.top + scrollYOffset;
+                cardTop = ownRect.top + scrollYOffset - sidebarOffsetTop;
 
                 if (ownRef) {
-                    if ((priorCommentTop - (ownRect.top + scrollYOffset) + 10) >= ownRef.offsetHeight) {
-                        cardTop = ownRect.top + scrollYOffset;
+                    if ((priorCommentTop - (ownRect.top + scrollYOffset - sidebarOffsetTop) + 10) >= ownRef.offsetHeight) {
+                        cardTop = ownRect.top + scrollYOffset - sidebarOffsetTop;
                     } else {
                         cardTop = priorCommentTop - 10 - ownRef.offsetHeight;
                     }
@@ -161,7 +165,7 @@ function Sidebar(props) {
             continue;
         }
 
-        let cardTop = commentState.commentRects[id].top;
+        let cardTop = commentState.commentRects[id].top - sidebarOffsetTop;
 
         const ownRect = commentState.commentRects[id];
 
@@ -169,7 +173,7 @@ function Sidebar(props) {
             // ensure to take the recent top position
             const priorCommentPosition = commentNodes[sortedCommentIds[i - 1]];
 
-            if (ownRect.top + scrollYOffset < (priorCommentTop + priorCommentPosition.offsetHeight)) {
+            if (ownRect.top + scrollYOffset - sidebarOffsetTop < (priorCommentTop + priorCommentPosition.offsetHeight)) {
                 cardTop = priorCommentTop + priorCommentPosition.offsetHeight + 10;
             } else {
                 cardTop += scrollYOffset;

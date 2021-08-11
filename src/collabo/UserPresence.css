@@ -1,0 +1,25 @@
+.user-presence {
+    display: flex;
+    flex-flow: row;
+    flex-direction: row;
+    justify-content: flex-start;
+}
+
+.user-presence-avatar {
+    margin-left: 10px;
+}
+
+.user-presence-avatar img {
+    border: 3px solid transparent;
+    width: 50px;
+    height: 50px;
+}
+
+.user-presence-avatar img:hover {
+    border: 3px solid #eee;
+}
+
+.user-presence-avatar.me {
+    padding-left: 10px;
+    border-left: 1px solid #ccc;
+}

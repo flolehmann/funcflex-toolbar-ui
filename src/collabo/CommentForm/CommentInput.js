@@ -23,14 +23,16 @@ function CommentInput(props) {
 
     const inputHandler = props.inputHandler;
     const interactiveNames = props.interactiveNames;
+    const me = props.me;
     const disabled = props.disabled || false;
     const resetTrigger = props.resetTrigger || "";
-    const className = props.className;
+    let className = props.className || "";
     const onFocusHandler = props.onFocusHandler;
     const inputHtml = props.inputHtml || "";
+    const isTyping = props.isTyping || false;
 
     const contentEditable = useRef();
-    const [html, setHtml] =  useState("Comment ...");
+    const [html, setHtml] =  useState("");
     const [suggestions, setSuggestions] = useState([]);
     const [suggestionsSearch, setSuggestionsSearch] = useState("");
     const [lastKeyPressed, setLastKeyPressed] = useState("");
@@ -40,9 +42,28 @@ function CommentInput(props) {
     const [listCursor, setListCursor] = useState(0);
 
     useEffect(() => {
+        if (lastKeyPressed === "@") {
+            let sel = window.getSelection();
+            let node = sel.anchorNode;
+            if (sel.anchorNode.nodeName === "DIV") {
+                node = sel.anchorNode.firstChild;
+            }
+            //setCaretPos(getCaretPos(sel.anchorNode) - 1);
+            setCaretPos(getCaretPos(node));
+            setTextAnchorNode(node);
+        }
+    }, [lastKeyPressed]);
+
+    useEffect(() => {
         if (inputHtml.length > 0) {
             setHtml(inputHtml)
         }
+
+        if (me) {
+            const meIndex = interactiveNames.findIndex(name => name.tag === me.tag);
+            interactiveNames.splice(meIndex, 1);
+        }
+
     }, []);
 
     useEffect(() => {
@@ -86,9 +107,7 @@ function CommentInput(props) {
             } else {
                 setSuggestions([]);
             }
-            let sel = window.getSelection();
-            setCaretPos(getCaretPos(sel.anchorNode) - 1);
-            setTextAnchorNode(sel.anchorNode);
+
         }
         inputHandler(html);
     }, [html]);
@@ -116,7 +135,7 @@ function CommentInput(props) {
         const inputLength = inputValue.length;
         return inputLength === 0 ? interactiveNames : interactiveNames.filter(interactiveName => {
             const inputSearch = "@" + value;
-            const interactiveNameSlice = interactiveName.name.toLowerCase().slice(0, inputSearch.length);
+            const interactiveNameSlice = interactiveName.tag.toLowerCase().slice(0, inputSearch.length);
             return inputSearch === interactiveNameSlice;
         });
     };
@@ -126,8 +145,10 @@ function CommentInput(props) {
         if (window.getSelection) {
             sel = window.getSelection();
             let anchorNode = textAnchorNode
+            //let caret = getCaretPos(anchorNode);
             let caret = getCaretPos(anchorNode);
             range = document.createRange();
+            // content-editable or text node?
             range.setStart(anchorNode, caretPos);
             if (!isClickSelection) {
                 range.setEnd(anchorNode, caret);
@@ -141,9 +162,9 @@ function CommentInput(props) {
             if (sel.rangeCount) {
                 range = sel.getRangeAt(0);
                 range.deleteContents();
-                range.insertNode(document.createTextNode(suggestion.name + " "));
+                range.insertNode(document.createTextNode(suggestion.tag + " "));
                 setHtml(contentEditable.current.innerHTML);
-                setNewCaretPos(suggestion.name.length + 1);
+                setNewCaretPos(suggestion.tag.length + 1);
             }
         }
 
@@ -157,7 +178,7 @@ function CommentInput(props) {
             return
         }
         }>
-            {suggestion.name}
+            {suggestion.tag}
         </div>
     };
 
@@ -274,6 +295,10 @@ function CommentInput(props) {
     };
 
     const suggestionsList = generateSuggestionsList();
+
+    if (isTyping) {
+        className += " typing";
+    }
 
     return <div className={className}>
         <ContentEditable

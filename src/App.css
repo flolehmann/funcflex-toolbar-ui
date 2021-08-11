@@ -1,6 +1,9 @@
+html, body {
+  height: 100%;
+}
+
 .App {
   position: relative;
-  text-align: center;
 }
 
 .App-logo {
@@ -38,13 +41,16 @@
   }
 }
 
+#root, .App, .document-editor {
+  height: 100%;
+}
 
 .document-editor {
   border: 1px solid var(--ck-color-base-border);
   border-radius: var(--ck-border-radius);
 
   /* Set vertical boundaries for the document editor. */
-  max-height: 700px;
+  /*height: 100%;*/
 
   /* This element is a flex container for easier rendering. */
   display: flex;
@@ -56,10 +62,14 @@
   z-index: 1;
 
   /* Create the illusion of the toolbar floating over the editable. */
-  box-shadow: 0 0 5px hsla( 0,0%,0%,.2 );
 
   /* Use the CKEditor CSS variables to keep the UI consistent. */
+  border-top: 1px solid var(--ck-color-toolbar-border);
   border-bottom: 1px solid var(--ck-color-toolbar-border);
+}
+
+.ck.ck-toolbar {
+  background: #fff;
 }
 
 /* Adjust the look of the toolbar inside the container. */
@@ -75,12 +85,14 @@
 
   /* Make it possible to scroll the "page" of the edited content. */
   overflow-y: scroll;
+
+  height: 100%;
 }
 
 .document-editor__editable-container .ck-editor__editable {
   /* Set the dimensions of the "page". */
-  width: 15.8cm;
-  min-height: 21cm;
+  /*width: 15.8cm;*/
+  min-height: 30cm;
 
   /* Keep the "page" off the boundaries of the container. */
   padding: 1cm 2cm 2cm;
