@@ -73,11 +73,15 @@
 .comment-input .content-editable::before {
     content: "Comment or add other with @";
     color: #80868b;
+    pointer-events: none;
+    position: absolute;
 }
 
 .reply-input .content-editable::before {
     content: "Reply or add other with @";
     color: #80868b;
+    pointer-events: none;
+    position: absolute;
 }
 
 .comment-input.typing .content-editable::before,
@@ -96,7 +100,8 @@
     margin-right: 0.5rem;
 }
 
-.reply {
+.reply,
+.first-comment {
     border-bottom: 1px solid #eee;
     margin-bottom: .5rem;
     padding-bottom: .5rem;

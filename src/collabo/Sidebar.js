@@ -23,7 +23,6 @@ function Sidebar(props) {
 
     useEffect(() => {
         // sort comments by CommentCard's top position
-        console.log("SORT COMMENTS")
         const sorted = Object.entries(commentState.commentRects)
         .sort(([,a],[,b]) => {
             return a.top - b.top
@@ -38,7 +37,6 @@ function Sidebar(props) {
         // remove nodes of deleted comments
         for (const id of Object.keys(commentNodes)) {
             if (!(id in commentState.commentRects)) {
-                console.log("DELETE REF", id, commentNodes[id]);
                 delete commentNodes[id];
             }
         }

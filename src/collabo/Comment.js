@@ -1,9 +1,7 @@
 import React, {useContext, useState, forwardRef, useEffect} from 'react';
-import {Button, Card, Col, Dropdown, Form, Image, Row} from "react-bootstrap";
+import {Button, Card, Col, Dropdown, Form, Image, OverlayTrigger, Row, Tooltip} from "react-bootstrap";
 import {CheckLg, ThreeDotsVertical} from 'react-bootstrap-icons';
 import {CommentsSidebarContext, UserContext} from "../App";
-import Autosuggest from 'react-autosuggest';
-import CommentInput from "./CommentForm/CommentInput";
 import CommentForm from "./CommentForm/CommentForm";
 import './Comment.css';
 
@@ -61,7 +59,7 @@ export default Comment = forwardRef((props, ref) => {
 
     let style = {};
 
-    const suggestions = usc.userState.users;
+    const suggestions = [...usc.userState.users];
     const me = usc.userState.me;
 
     const date = dateHelper(new Date(data.date));
@@ -76,7 +74,6 @@ export default Comment = forwardRef((props, ref) => {
 
     if (position) {
         style = { position: "absolute", top: top + "px" };
-        console.log("selected?" + selected)
         if (selected) {
             style["left"] = "-50px";
         }
@@ -105,7 +102,6 @@ export default Comment = forwardRef((props, ref) => {
                 <Dropdown.Toggle as={CustomOptionToggle}>
                 </Dropdown.Toggle>
                 <Dropdown.Menu size="sm" title="">
-                    <Dropdown.Header>Options</Dropdown.Header>
                     <Dropdown.Item onClick={e => {
                             setEditReply(reply.id);
                         }}>Edit</Dropdown.Item>
@@ -188,6 +184,22 @@ export default Comment = forwardRef((props, ref) => {
 
     const className = selected ? "comment-card selected" : "comment-card";
 
+    const approveButton = <OverlayTrigger key={"bottom"}
+                                          placement={"bottom"}
+                                          overlay={
+                                              <Tooltip>
+                                                Mark resolved and hide discussion
+                                              </Tooltip>
+                                          }>
+        <Button variant="light" onClick={e => {
+            csc.approveComment(id);
+            e.stopPropagation();
+            e.nativeEvent.stopImmediatePropagation();
+        }}><CheckLg color="royalBlue"/></Button>
+    </OverlayTrigger>
+
+
+
     return (
         <Card ref={ref} id={id} className={className} style={style} onClick={select}>
             <Card.Title>
@@ -201,15 +213,13 @@ export default Comment = forwardRef((props, ref) => {
                     </div>
                 </div>
                 <div className={"comment-info-right"}>
-                    { firstComment && <Button variant="light" onClick={e => {
-                        csc.approveComment(id);
-                        e.stopPropagation();
-                        e.nativeEvent.stopImmediatePropagation();
-                    }}><CheckLg color="royalBlue"/></Button> }
+                    { firstComment && approveButton }
                     { firstComment && options}
                 </div>
             </Card.Title>
-            { (isEdit && editCommentForm) || firstComment }
+            <div className={"first-comment"}>
+                { (isEdit && editCommentForm) || firstComment }
+            </div>
             <div>
                 { replies }
             </div>

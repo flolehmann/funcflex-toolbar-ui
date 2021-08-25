@@ -1,10 +1,8 @@
-import React, {useContext, useState} from 'react';
-import {ChatLeftFill, FileEarmarkText, FileEarmarkTextFill} from "react-bootstrap-icons";
+import React from 'react';
+import {FileEarmarkTextFill} from "react-bootstrap-icons";
 
 import './Topbar.css';
-import {Col, Container, Image, Row} from "react-bootstrap";
 import UserPresence from "./UserPresence";
-import {UserContext} from "../App";
 
 function Topbar(props) {
 

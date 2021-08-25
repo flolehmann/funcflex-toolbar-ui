@@ -1,9 +1,8 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {ChatLeftFill} from "react-bootstrap-icons";
-
 import ContentEditable from 'react-contenteditable'
 
 import './CommentInput.css';
+import {Image} from "react-bootstrap";
 
 const useRefCallback = (value, deps) => {
     const ref = React.useRef(value);
@@ -22,7 +21,7 @@ const useRefCallback = (value, deps) => {
 function CommentInput(props) {
 
     const inputHandler = props.inputHandler;
-    const interactiveNames = props.interactiveNames;
+    //const interactiveNames = props.interactiveNames;
     const me = props.me;
     const disabled = props.disabled || false;
     const resetTrigger = props.resetTrigger || "";
@@ -32,39 +31,46 @@ function CommentInput(props) {
     const isTyping = props.isTyping || false;
 
     const contentEditable = useRef();
-    const [html, setHtml] =  useState("");
+    const [html, setHtml] =  useState("<br>");
+    const [interactiveNames, setInteractiveNames] = useState([]);
     const [suggestions, setSuggestions] = useState([]);
     const [suggestionsSearch, setSuggestionsSearch] = useState("");
+    const [isSuggestionSearchActive, setIsSuggestionSearchActive] = useState(false);
     const [lastKeyPressed, setLastKeyPressed] = useState("");
     const [caretPos, setCaretPos] = useState(0);
     const [newCaretPos, setNewCaretPos] = useState(-1);
     const [textAnchorNode, setTextAnchorNode] = useState(null);
     const [listCursor, setListCursor] = useState(0);
 
-    useEffect(() => {
-        if (lastKeyPressed === "@") {
-            let sel = window.getSelection();
-            let node = sel.anchorNode;
-            if (sel.anchorNode.nodeName === "DIV") {
-                node = sel.anchorNode.firstChild;
-            }
-            //setCaretPos(getCaretPos(sel.anchorNode) - 1);
-            setCaretPos(getCaretPos(node));
-            setTextAnchorNode(node);
-        }
-    }, [lastKeyPressed]);
-
+    // Initialisation, e.g. remove your own name from suggestions list (interactiveNames)
     useEffect(() => {
         if (inputHtml.length > 0) {
             setHtml(inputHtml)
         }
 
+        // copy interactiveNames to keep userstate immutable
+        const interactiveNamesTemp = [...props.interactiveNames];
         if (me) {
-            const meIndex = interactiveNames.findIndex(name => name.tag === me.tag);
-            interactiveNames.splice(meIndex, 1);
+            const meIndex = interactiveNamesTemp.findIndex(name => name.tag === me.tag);
+            interactiveNamesTemp.splice(meIndex, 1);
         }
-
+        setInteractiveNames(interactiveNamesTemp);
     }, []);
+
+    // If last key pressed was an @, start the suggestion search.
+    // Here we need to get the anchorNode, and caretPosition before the @ char.
+    useEffect(() => {
+        if (lastKeyPressed === "@") {
+            let sel = window.getSelection();
+            let node = sel.anchorNode;
+            setCaretPos(getCaretPos(node) - 1);
+            setTextAnchorNode(node);
+            setIsSuggestionSearchActive(true);
+            setLastKeyPressed("");
+        }
+        // Input handler callback, e.g. used to update comment heights and positions within the sidebar
+        inputHandler(html);
+    }, [html]);
 
     useEffect(() => {
         if (lastKeyPressed === "Enter" || lastKeyPressed === "Tab" || lastKeyPressed === "Click") {
@@ -81,16 +87,10 @@ function CommentInput(props) {
                     suggetionNode = anchorNode.nextSibling;
                 }
 
-
-                console.log(anchorNode.firstChild);
-                //const suggetionNode = anchorNode.nextSibling;
-                console.log(suggetionNode);
-                console.log(newCaretPos);
                 range.setStart(suggetionNode, newCaretPos)
                 range.collapse(true)
                 sel.removeAllRanges()
                 sel.addRange(range)
-
 
                 setNewCaretPos(-1);
                 setLastKeyPressed("");
@@ -98,29 +98,27 @@ function CommentInput(props) {
         }
     }, [html, newCaretPos]);
 
+    // Search suggestions
     useEffect(() => {
-        if (lastKeyPressed === "@") {
-            console.log(suggestionsSearch)
+        if (isSuggestionSearchActive) {
             const suggestions = getSuggestions(suggestionsSearch);
             if (suggestions.length > 0) {
                 setSuggestions(suggestions);
             } else {
                 setSuggestions([]);
             }
-
         }
-        inputHandler(html);
-    }, [html]);
+    }, [html, isSuggestionSearchActive]);
 
     useEffect(() => {
         if (resetTrigger.length > 0) {
-            console.log("CHANGED INPUT HTML! RESET!");
             reset();
         }
     }, [resetTrigger]);
 
     const reset = () => {
         setHtml("");
+        setIsSuggestionSearchActive(false);
         setSuggestions([]);
         setSuggestionsSearch("");
         setLastKeyPressed("");
@@ -140,15 +138,13 @@ function CommentInput(props) {
         });
     };
 
-    const insertSuggestionIntoHtml2 = (suggestion, isClickSelection = false) => {
+    const insertSuggestionIntoHtml = (suggestion, isClickSelection = false) => {
         let sel, range;
         if (window.getSelection) {
             sel = window.getSelection();
-            let anchorNode = textAnchorNode
-            //let caret = getCaretPos(anchorNode);
+            let anchorNode = textAnchorNode;
             let caret = getCaretPos(anchorNode);
             range = document.createRange();
-            // content-editable or text node?
             range.setStart(anchorNode, caretPos);
             if (!isClickSelection) {
                 range.setEnd(anchorNode, caret);
@@ -171,14 +167,19 @@ function CommentInput(props) {
     }
 
     const renderSuggestion = (key, id, suggestion, selected) => {
-        const style = selected ? {backgroundColor: "red"} : {};
-        return <div key={key} style={style} onClick={(e) => {
+        let className = !selected ? "suggestion-row" : "suggestion-row selected";
+        return <div key={key} className={className} onClick={(e) => {
             handleOnClick(id, suggestion);
             e.preventDefault();
             return
-        }
-        }>
-            {suggestion.tag}
+        }}>
+            <div className={"avatar"}>
+                <Image src={suggestion.picture} roundedCircle/>
+            </div>
+            <div className={"user-data"}>
+                <div className={"tag"}>{ suggestion.tag }</div>
+                <div className={"name"}>{ suggestion.name }</div>
+            </div>
         </div>
     };
 
@@ -204,13 +205,12 @@ function CommentInput(props) {
             preCaretTextRange.setEndPoint("EndToEnd", textRange);
             caretOffset = preCaretTextRange.text.length;
         }
-        console.log(sel);
         return caretOffset;
     }
 
     const handleOnClick = (id, suggestion) => {
-        console.log(id, suggestion);
-        insertSuggestionIntoHtml2(suggestions[id], true);
+        insertSuggestionIntoHtml(suggestions[id], true);
+        setIsSuggestionSearchActive(false);
         setSuggestions([]);
         setLastKeyPressed("Click");
         setSuggestionsSearch("");
@@ -219,17 +219,11 @@ function CommentInput(props) {
     };
 
     const handleKeyDown = useRefCallback(e => {
-        //38 up
-        //40 down
-        //9 tab
-        //13 enter
-        //32 backspace
-        //81 @
-
         // check for @ input and get caret pos
         if (e.key === "@") {
-            console.log("set last key pressed");
             setLastKeyPressed("@");
+            setSuggestionsSearch("");
+            setListCursor(0);
         }
 
         if (suggestions) {
@@ -245,7 +239,8 @@ function CommentInput(props) {
 
             if (listCursor >= 0 && listCursor <= suggestions.length -1) {
                 if (e.code === "Enter" || e.code === "Tab") {
-                    insertSuggestionIntoHtml2(suggestions[listCursor]);
+                    insertSuggestionIntoHtml(suggestions[listCursor]);
+                    setIsSuggestionSearchActive(false);
                     setSuggestions([]);
                     setLastKeyPressed(e.code);
                     setSuggestionsSearch("");
@@ -256,26 +251,18 @@ function CommentInput(props) {
                 }
             }
 
-            if (lastKeyPressed === "@") {
-                console.log("SCurr", lastKeyPressed, e.key);
-                console.log(suggestionsSearch);
-                if (e.key.length === 1) {
-                    console.log("foo")
+            if (isSuggestionSearchActive) {
+                if (e.key.length === 1 && e.key !== "@") {
                     setSuggestionsSearch(suggestionsSearch + e.key);
                 }
-                //else if (e.key === "@") {
-                //     console.log("bar")
-                //     setSuggestionsSearch("");
-                // }
-
                 if (e.code === "Backspace" && suggestionsSearch.length > 0) {
                     setSuggestionsSearch(suggestionsSearch.slice(0, -1));
                 }
-
                 if (e.code === "Backspace" && suggestionsSearch.length === 0) {
                     setSuggestions([]);
                     setLastKeyPressed(e.code);
                     setSuggestionsSearch("");
+                    setIsSuggestionSearchActive(false);
                 }
             }
 
@@ -305,14 +292,14 @@ function CommentInput(props) {
             className={"content-editable"}
             innerRef={contentEditable}
             html={html} // innerHTML of the editable div
-            disabled={disabled}       // use true to disable editing
+            disabled={disabled} // use true to disable editing
             onChange={handleChange} // handle innerHTML change
             onKeyDown={handleKeyDown}
             onFocus={onFocusHandler}
             tagName='div' // Use a custom HTML tag (uses a div by default)
         />
-        {suggestions &&
-            <div>
+        {suggestions && suggestionsList.length > 0 &&
+            <div className={"suggestion-list"}>
                 {suggestionsList}
             </div>
         }

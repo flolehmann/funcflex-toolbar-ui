@@ -63,6 +63,14 @@ const initialUserState = {
             tag: "@agent",
             picture: process.env.PUBLIC_URL + "avatar-agent.png",
             online: false
+        },
+        {
+            id: "mocked-test-id",
+            type: "ai",
+            name: "Tim Jung",
+            tag: "@tim-jung",
+            picture: process.env.PUBLIC_URL + "avatar-user.png",
+            online: false
         }
     ],
     me: initialMeState
@@ -116,8 +124,6 @@ const commentReducer = (state, action) => {
         case 'approveComment':
             comment = comments[id];
             delete comments[id];
-            console.log("approve dem");
-            console.log(comment);
             return { ...state,
                 comments: comments,
                 approvedComments: {
@@ -149,7 +155,6 @@ const commentReducer = (state, action) => {
             const editReply = comment.replies[replyIndex];
             editReply.data.text = text;
             comment.replies[replyIndex] = editReply;
-            console.log(comment);
             return { ...state,
                 comments: {
                     ...state.comments, [comment.id]: comment
@@ -204,7 +209,6 @@ const userReducer = (state, action) => {
         case 'setOnline':
             userIndex = users.findIndex(user => user.id === id);
             users[userIndex].online = newOnline;
-            console.log("setOnline", id, users[userIndex]);
             return { ...state,
                 users: [...users]
             }
@@ -269,7 +273,6 @@ function App(){
     }
 
     const getPlugin = () => {
-        console.log("getPlugin")
         if (!editor || highlightSelector) {
             return;
         }
@@ -331,7 +334,6 @@ function App(){
         const user = cancelledComment.data.user.name;
         highlightSelector.remove("comment", id, user);
         const commentRects = getCommentRects();
-        console.log("DISPATCH CANCEL COMMENT")
         commentDispatch({
             type: 'cancelComment',
             payload: {
@@ -345,7 +347,6 @@ function App(){
         if (!highlightSelector) {
             return null;
         }
-        console.log(commentState);
         const comment = commentState.comments[id];
         const user = comment.data.user.name;
 
@@ -364,7 +365,6 @@ function App(){
         if (!highlightSelector) {
             return null;
         }
-        console.log(commentState);
         const comment = commentState.comments[id];
         const user = comment.data.user.name;
 
@@ -400,7 +400,6 @@ function App(){
     }
 
     const editReply = (commentId, replyId, text) => {
-        console.log(commentId, replyId, text)
         commentDispatch({
             type: 'editReply',
             payload: {
@@ -424,8 +423,6 @@ function App(){
 
     const onMarkerChange = (deletionPosition, annotationType, id, user) => {
         if (deletionPosition) {
-            console.log(deletionPosition)
-            console.log("DELETED MARKER YO UPDATING!")
             highlightSelector.remove(annotationType, id, user);
             updateCommentRects();
         }
@@ -435,17 +432,13 @@ function App(){
         if (!highlightSelector) {
             return;
         }
-        let start = Date.now();
         highlightSelector.computeRects("comment")
-        //console.log(Date.now() - start);
         let rects = highlightSelector.getRects();
         return rects["comment"];
     }
 
     const updateCommentRects = () => {
         const commentRects = getCommentRects();
-        //console.log(commentRects);
-        //console.log(commentState)
         commentDispatch({
             type: 'updateCommentRects',
             payload: {
@@ -518,7 +511,7 @@ function App(){
             return;
         }
 
-        highlightSelector.setOnRemoveMarker(() => console.log("ON REMOVE MARKER CALLED BACK!"))
+        highlightSelector.setOnRemoveMarker(() => console.log("onRemoveMarker callback"))
     }
 
 
@@ -540,7 +533,6 @@ function App(){
         if (!highlightSelector) {
             return;
         }
-        console.log("setOnClickMarker")
         highlightSelector.setOnClickMarker(setSelectedCommentId);
     }
 
@@ -562,8 +554,10 @@ function App(){
         // comment ballon's visibility is defined by showCommentBalloon and an existing caretRect
         if (showCommentBalloon && caretRect !== null && commentState.selectedCommentId) {
             const comment = commentState.comments[commentState.selectedCommentId] || commentState.newComments[commentState.selectedCommentId];
-            unsetCurrentSelectedComment(comment.id, comment.data.user.name, true);
-            setSelectedCommentId();
+            if (comment) {
+                unsetCurrentSelectedComment(comment.id, comment.data.user.name, true);
+                setSelectedCommentId();
+            }
         }
     }, [caretRect]);
 

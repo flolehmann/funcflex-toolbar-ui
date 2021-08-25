@@ -2,8 +2,6 @@ import React, {useState} from 'react';
 import {ChatLeftFill} from "react-bootstrap-icons";
 
 import './CommentBallon.css';
-import {Button, Col, Form, Row} from "react-bootstrap";
-import CommentInput from "./CommentForm/CommentInput";
 
 function CommentBalloon(props) {
 

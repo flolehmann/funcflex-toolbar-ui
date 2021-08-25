@@ -1,10 +1,12 @@
 import React, {useContext, useEffect, useState} from 'react';
-import {ChatLeftFill} from "react-bootstrap-icons";
 
 import '../CommentBallon.css';
 import {Button, Col, Form, Row} from "react-bootstrap";
 import CommentInput from "./CommentInput";
 import {CommentsSidebarContext} from "../../App";
+
+import './CommentForm.css';
+
 
 function CommentForm(props) {
 
@@ -22,6 +24,7 @@ function CommentForm(props) {
     const selectedCard = props.selectedCard;
     const selectHandler = props.selectHandler;
     const commentId = props.commentId;
+    const className = props.className;
 
     const id = comment.id;
     const data = comment.data;
@@ -50,7 +53,7 @@ function CommentForm(props) {
         }
     }, [inputText])
 
-    return <Form>
+    return <Form className={className}>
         <Form.Group className={"form-group"} controlId="formComment" onClick={e => {
             e.stopPropagation();
             e.nativeEvent.stopImmediatePropagation();
@@ -62,7 +65,6 @@ function CommentForm(props) {
                           me={me}
                           isTyping={isTyping}
                           onFocusHandler={e => {
-                              console.log(e)
                               setIsFocused(true);
                           }}
                           inputHandler={(text) => {
@@ -76,14 +78,13 @@ function CommentForm(props) {
         </Form.Group>
         {(isFocused || isEdit || text === "") && <Row>
             <Col className={"comment-control"}>
-                <Button size="sm" variant="primary" disabled={!inputText} onClick={e => {
+                <Button size="sm" variant="primary" disabled={!inputText.replace("<br>", "")} onClick={e => {
                     if (!isEdit) {
                         if (!isReply) {
                             csc.postComment(id, inputText);
                             setIsFocused(false);
                             setResetTrigger(inputText);
                         } else {
-                            console.log("CALL REPLY METHOD HERE!")
                             csc.postReply(id, inputText, user);
                             setIsFocused(false);
                             setResetTrigger(inputText);
@@ -114,13 +115,11 @@ function CommentForm(props) {
                             setIsFocused(false);
                             setResetTrigger(inputText);
                         } else {
-                            console.log("JUST RESET THE REPLY!");
                             setIsFocused(false);
                             setResetTrigger(inputText);
                         }
                     } else {
                         if (isReply) {
-                            console.log("EDIT REPLY HANDLER")
                             editReplyHandler("");
                         } else {
                             isEditHandler(false);

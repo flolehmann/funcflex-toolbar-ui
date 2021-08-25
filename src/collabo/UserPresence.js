@@ -1,8 +1,7 @@
-import React, {useContext, useState} from 'react';
-import {ChatLeftFill, FileEarmarkText, FileEarmarkTextFill} from "react-bootstrap-icons";
+import React, {useContext} from 'react';
 
 import './UserPresence.css';
-import {Col, Container, Image, OverlayTrigger, Tooltip, Row, Fade} from "react-bootstrap";
+import {Image, OverlayTrigger, Tooltip, Fade} from "react-bootstrap";
 import {UserContext} from "../App";
 
 function UserPresence(props) {
