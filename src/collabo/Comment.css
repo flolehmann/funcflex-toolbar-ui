@@ -106,3 +106,38 @@
     margin-bottom: .5rem;
     padding-bottom: .5rem;
 }
+
+.ai {
+    position: relative;
+}
+
+.ai-text {
+    margin-top: 0.25rem;
+    padding-top: 0.25rem;
+    border-top: 1px solid #ccc;
+    font-family: "serif";
+    font-size: 0.9rem;
+
+    height: 8.5rem;
+    overflow: hidden;
+}
+
+.ai-text:after {
+    content: "";
+    text-align: right;
+    position: absolute;
+    bottom: 2rem;
+    right: 0;
+    width: 70%;
+    height: 1.2em;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1) 50%);
+}
+
+.typing-names {
+    font-size: 0.9rem;
+    color: #a0a0a0;
+    background-color: #ecefef;
+    padding: 0.25rem;
+    margin-bottom: 0.25rem;
+    border-radius: 2px;
+}

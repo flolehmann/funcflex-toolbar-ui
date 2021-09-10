@@ -21,13 +21,15 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import "./ckeditor/highlight-selector/HighlightSelector.css";
 import CommentBalloon from "./collabo/CommentBalloon";
 import Topbar from "./collabo/Topbar";
+import {detectIntent, generate, parseMessage, summarize, translateDeEn} from "./intelligence/Conversation";
+
 
 const editorConfiguration = {
   plugins: [ Essentials, Bold, Italic, Paragraph, HighlightSelector ],
-  toolbar: [ 'bold', 'italic']
+  toolbar: [ 'undo', 'redo', 'bold', 'italic', 'underline']
 };
 
-const data = '<p>Hello World</p>';
+const data = '<p>Hello World</p> <p><span class="annotation comment comment-VqU-Nqt3KIfJpa1BlkKC9 comment-by-Human User" data-comment-id="VqU-Nqt3KIfJpa1BlkKC9" data-annotation-type="comment" data-user-id="Human User">Sehr gut</span></p>';
 
 const prototypeConfig = {
   documentName: "Text Summary",
@@ -92,8 +94,11 @@ const commentReducer = (state, action) => {
 
     const selectedCommentId = action.payload.selectedCommentId || "";
 
+    const user = action.payload.user;
+
     let comment;
     let replyIndex;
+    let userIndex;
 
     switch (action.type) {
         case 'addComment':
@@ -141,9 +146,24 @@ const commentReducer = (state, action) => {
                 },
                 commentRects: commentRects || state.commentRects
             };
+        case 'typingReply':
+            comment = comments[id];
+            comment.typing.push(user);
+            return { ...state,
+                comments: {...comments, [id]: comment}
+            };
+        case 'removeTyping':
+            comment = comments[id];
+            userIndex = comment.typing.findIndex(u => u.id === user.id);
+            comment.typing.splice(userIndex, 1);
+            return { ...state,
+                comments: {...comments, [id]: comment}
+            };
         case 'postReply':
             comment = comments[id];
             comment.replies.push(reply);
+            userIndex = comment.typing.findIndex(u => u.id === reply.data.user.id);
+            comment.typing.splice(userIndex, 1);
             return { ...state,
                 comments: {
                     ...state.comments, [comment.id]: comment
@@ -262,7 +282,7 @@ function App(){
             //setOnChangeData();
             setOnChangeView();
             setCaretDetector();
-            //setOnUpdateMarker();
+            setOnUpdateMarker();
             setClickObserver();
             setOnClickMarker();
             if (editor && highlightSelector) {
@@ -292,7 +312,8 @@ function App(){
                 date: Date.now()
             },
             replies: [],
-            deletedReplies: []
+            deletedReplies: [],
+            typing: []
         }
         const commentRects = getCommentRects();
         commentDispatch({
@@ -307,13 +328,72 @@ function App(){
     const postComment = (id, text) => {
         const newComment = commentState.newComments[id];
         newComment.data.text = text;
-
         commentDispatch({
             type: 'postComment',
             payload: {
                 newComment: newComment
             }
         });
+
+        // add intelligence
+        const matches = parseMessage(text, "@agent");
+        if (matches) {
+            console.log("MATCHES", matches);
+            //infer intent from comment
+            const intent = detectIntent(text);
+            const agent = userState.users.filter(user => user.tag === "@agent")[0];
+            intent.then(result => {
+                console.log(newComment);
+                //get marked text from editor
+                const marker = getMarker(id, newComment.data.user.name);
+                const markedText = getMarkerText(marker);
+                const ranges = marker.getRange();
+
+                commentDispatch({
+                    type: 'typingReply',
+                    payload: {
+                        id: id,
+                        user: agent
+                    }
+                });
+
+                //replaceMarkedText("LOL", marker);
+                if (result.intent.name === "summarize") {
+                    const summary = summarize(markedText);
+                    summary.then(result => {
+
+                        console.log(result)
+                        const ai = {
+                            skill: "summarization",
+                            data: result
+                        };
+
+                        // TODO: Replace static text by rasa response
+                        postAiReply(id, "Here is the summarized text", agent, ai);
+                    });
+                } else if (result.intent.name === "translateDeEn") {
+                    const translatedDeEn = translateDeEn(markedText);
+                    translatedDeEn.then(result => {
+                        console.log(result);
+                        const ai = {
+                            skill: "translation_de_en",
+                            data: result
+                        };
+                        // TODO: Post as skill reply
+                    });
+                } else if (result.intent.name === "generate") {
+                    const generated = generate(markedText);
+                    generated.then(result => {
+                        console.log(result);
+                        const ai = {
+                            skill: "generation",
+                            data: result
+                        };
+                        // TODO: Post as skill reply
+                    });
+                }
+            });
+        }
     }
 
     const editComment = (id, text) => {
@@ -379,6 +459,16 @@ function App(){
         });
     }
 
+    const typingReply = (id, user) => {
+        commentDispatch({
+            type: 'typingReply',
+            payload: {
+                id: id,
+                user: user
+            }
+        });
+    }
+
     const postReply = (id, text, user) => {
         const reply = {
             id: nanoid(),
@@ -386,6 +476,27 @@ function App(){
                 user: user,
                 text: text,
                 time: Date.now()
+            },
+            replies: [],
+        };
+
+        commentDispatch({
+            type: 'postReply',
+            payload: {
+                id: id,
+                reply: reply
+            }
+        });
+    }
+
+    const postAiReply = (id, text, user, ai) => {
+        const reply = {
+            id: nanoid(),
+            data: {
+                user: user,
+                text: text,
+                time: Date.now(),
+                ai: ai
             },
             replies: [],
         };
@@ -422,9 +533,11 @@ function App(){
     }
 
     const onMarkerChange = (deletionPosition, annotationType, id, user) => {
+        console.log("ON MARKER CHANGE", deletionPosition);
         if (deletionPosition) {
-            highlightSelector.remove(annotationType, id, user);
-            updateCommentRects();
+            console.log("REMOVING MARKER");
+             highlightSelector.remove(annotationType, id, user);
+             updateCommentRects();
         }
     }
 
@@ -470,6 +583,41 @@ function App(){
         setCaretRect(rect);
     }
 
+    const getMarker = (id, user) => {
+        if (!highlightSelector) {
+            return;
+        }
+        return highlightSelector.getMarker("comment", id, user);
+    }
+
+    const getMarkerText = (marker) => {
+        if (!highlightSelector) {
+            return;
+        }
+        return highlightSelector.getMarkerText(marker);
+    }
+
+    const replaceMarkedText = (text, marker) => {
+        if (!highlightSelector) {
+            return;
+        }
+        return highlightSelector.replaceMarkedText(text, marker);
+    }
+
+    const replaceMarkedTextHtml = (html, marker) => {
+        if (!highlightSelector) {
+            return;
+        }
+        return highlightSelector.replaceMarkedTextHtml(html, marker);
+    }
+
+    const addAfterMarkedText = (text, marker) => {
+        if (!highlightSelector) {
+            return;
+        }
+        return highlightSelector.insertAfterMarkedText(text, marker);
+    }
+
     const setCurrentSelectedComment = (id, user) => {
         if (!highlightSelector) {
             return;
@@ -504,6 +652,14 @@ function App(){
         }
 
         highlightSelector.setOnChangeView(updateCommentRects)
+    }
+
+    const setOnUpdateMarker = () => {
+        if (!highlightSelector) {
+            return;
+        }
+
+        highlightSelector.setOnUpdateMarkers(() => console.log("onUpdateMarkers callback"))
     }
 
     const setOnRemoveMarker = () => {
@@ -561,6 +717,8 @@ function App(){
         }
     }, [caretRect]);
 
+    console.log("COMMENTSTATE", commentState);
+
     return (
         <UserContext.Provider value={{
             userState: userState
@@ -588,7 +746,10 @@ function App(){
                                           } }
                                           onChange={ ( event, editor ) => {
                                               console.log("on change")
+                                              console.log(event);
+                                              console.log(editor.model.markers);
                                               const data = editor.getData();
+                                              console.log("DATA", data);
                                           } }
                                           onBlur={ ( event, editor ) => {
                                             console.log( 'Blur.', editor );
@@ -613,7 +774,11 @@ function App(){
                                         deleteReply: deleteReply,
                                         setSelectedCommentId: setSelectedCommentId,
                                         setCurrentSelectedComment: setCurrentSelectedComment,
-                                        unsetCurrentSelectedComment: unsetCurrentSelectedComment
+                                        unsetCurrentSelectedComment: unsetCurrentSelectedComment,
+                                        getMarker: getMarker,
+                                        getMarkedText: getMarkerText,
+                                        replaceMarkedText: replaceMarkedText,
+                                        replaceMarkedTextHtml: replaceMarkedTextHtml
                                     }}>
                                         <Sidebar sidebarOffsetTop={sidebarOffsetTop} commentRectsLength={Object.keys(commentState.commentRects).length}/>
                                     </CommentsSidebarContext.Provider>

@@ -68,23 +68,107 @@ export default class HighlightSelector extends Plugin {
 
         editor.conversion.for('upcast').dataToMarker( {
             view: 'annotation'
+        });
+
+        // editor.model.schema.extend( '$text', { allowAttributes: 'span' } );
+        // editor.model.schema.setAttributeProperties( 'span', {
+        //     isFormatting: true,
+        //     copyOnEnter: true
+        // } );
+        // editor.conversion.for( 'upcast' ).elementToMarker( {
+        //     view: {
+        //         name: 'span',
+        //         attributes: {
+        //             'data-annotation-type': 'comment'
+        //         }
+        //     },
+        //     model:( viewElement, conversionApi ) => {
+        //                 console.log("EEEEY", viewElement.getAttribute('data-annotation-type'), conversionApi);
+        //                 const annotationType =  viewElement.getAttribute('data-annotation-type');
+        //                 const dataCommentId = viewElement.getAttribute('data-comment-id');
+        //                 const userId = viewElement.getAttribute('data-user-id');
+        //
+        //                 const arr = [
+        //                     'annotation',
+        //                     annotationType,
+        //                     dataCommentId,
+        //                     userId
+        //                 ];
+        //                 return arr.join(":");
+        //                 //return 'annotation'
+        //             },
+        // } );
+        //
+        // editor.conversion.for( 'editingDowncast' ).markerToElement( {
+        //     model: 'annotation',
+        //     view: ( markerData, conversionApi ) => {
+        //         console.log("H§H§", markerData);
+        //         const [ , annotationType, annotationId, userId ] = markerData.markerName.split(':');
+        //         const { writer } = conversionApi;
+        //
+        //         return writer.createUIElement( 'span', {
+        //             'data-annotation-type': annotationType,
+        //             'data-comment-id': annotationId,
+        //             'data-user-id': userId
+        //         } );
+        //     }
+        // } );
+
+
+        const undoCommand = editor.commands.get( 'undo' );
+        const redoCommand = editor.commands.get( 'redo' );
+
+        undoCommand.on( 'execute', eventInfo => {
+            console.log( 'Undo has been fired.' );
+            console.log(eventInfo);
         } );
 
-        /*
-        ,
-            view: markerName => {
-                //console.log(this.editor.getData());
-                return {
-                    group: 'annotation',
-                    name: markerName
-                }
-            },
-            converterPriority: 'high'
-         */
+        undoCommand.on( 'revert', eventInfo => {
+            console.log( 'undo revert has been fired.' );
+            console.log(eventInfo);
+        } );
+
+        undoCommand.on( 'change', ( evt, propertyName, newValue, oldValue ) => {
+            console.log("undo change");
+            console.log( `${ propertyName } has changed from ${ oldValue } to ${ newValue }` );
+        } );
+
+        undoCommand.on( 'change:value', ( evt, propertyName, newValue, oldValue ) => {
+            console.log("value undo change");
+            console.log( `${ propertyName } has changed from ${ oldValue } to ${ newValue }` );
+        } );
+
+        redoCommand.on( 'execute', eventInfo => {
+            console.log( 'Redo has been fired.' );
+            console.log(eventInfo);
+        } );
+
+        redoCommand.on( 'change', ( evt, propertyName, newValue, oldValue ) => {
+            console.log("redo change");
+            console.log( `${ propertyName } has changed from ${ oldValue } to ${ newValue }` );
+        } );
+
+        redoCommand.on( 'change:value', ( evt, propertyName, newValue, oldValue ) => {
+            console.log("value undo change");
+            console.log( `${ propertyName } has changed from ${ oldValue } to ${ newValue }` );
+        } );
+
+        redoCommand.on( 'set:prop', ( evt, propertyName, newValue, oldValue ) => {
+            console.log( `Value is going to be changed from ${ oldValue } to ${ newValue }` );
+            console.log( `Current property value is ${ redoCommand[ propertyName ] }` );
+
+            // Let's override the value.
+            evt.return = 3;
+        } );
+
+        editor.model.on ('applyOperation', (eventInfo, args) => {
+            console.log("APPLY OP", eventInfo, args);
+        })
 
     }
 
     markerHighlightView(data, conversionApi) {
+        console.log("markerHighlightview", data);
         const [ , annotationType, annotationId, userId ] = data.markerName.split(':');
         const annotationAttributeId = this.createAnnotationAttribute(annotationType);
         const attributes = {}
@@ -124,6 +208,7 @@ export default class HighlightSelector extends Plugin {
                     marker.on('change:range', (eventInfo, oldRange, data) => {
                         console.log(annotationType, id, "user: " + userId);
                         console.log("MARKER EVENT!");
+                        console.log("INSIGHTS", eventInfo, oldRange, data);
                         onChangeEventCallback(data.deletionPosition, annotationType, id, userId);
                     });
                 }
@@ -153,6 +238,53 @@ export default class HighlightSelector extends Plugin {
         const markerIdentifier = this.createAnnotationIdentifier(annotationType, annotationId, userId);
 
         editor.model.change(writer => writer.updateMarker(markerIdentifier));
+    }
+
+    getMarker(annotationType, annotationId, userId = null) {
+        console.log("Get Annotation:", annotationType, annotationId);
+        const editor = this.editor;
+        const annotationIdentifier = this.createAnnotationIdentifier(annotationType, annotationId, userId);
+        const markers = editor.model.markers;
+        console.log("MARKERS", markers);
+        const marker = markers.get(annotationIdentifier);
+        console.log("MARKER", marker);
+        return marker;
+    }
+
+    getMarkerText(marker) {
+        const result = [];
+        const range = marker.getRange();
+        for ( const item of range.getItems() ) {
+            console.log("ITEM", item);
+            if (item.is("textProxy")) {
+                result.push(item.data);
+            }
+        }
+        return result.join(" ");
+    }
+
+    replaceMarkedText(text, marker) {
+        const editor = this.editor;
+        const range = marker.getRange();
+        console.log(range);
+        editor.model.change( writer => {
+            editor.model.insertContent(writer.createText(text), range);
+        });
+    }
+
+    replaceMarkedTextHtml(html, marker) {
+        const editor = this.editor;
+        const range = marker.getRange();
+        const viewFragment = editor.data.processor.toView( html );
+        const modelFragment = editor.data.toModel( viewFragment );
+        editor.model.insertContent(modelFragment, range);
+    }
+
+    insertAfterMarkedText (text, marker) {
+        const editor = this.editor;
+        editor.model.change( writer => {
+            writer.insertText( 'text', marker.getEnd(), 'after' );
+        });
     }
 
     createAnnotationIdentifier(annotationType, id, userId = null) {
@@ -246,6 +378,7 @@ export default class HighlightSelector extends Plugin {
     setOnUpdateMarkers(callback) {
         const editor = this.editor;
         editor.model.markers.on('update', (eventInfo, marker, oldRange, newRange) => {
+            console.log("UPDATE MARKERS", eventInfo, marker, oldRange, newRange);
            callback();
         });
     }

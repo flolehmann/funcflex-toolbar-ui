@@ -4,6 +4,7 @@ import {CheckLg, ThreeDotsVertical} from 'react-bootstrap-icons';
 import {CommentsSidebarContext, UserContext} from "../App";
 import CommentForm from "./CommentForm/CommentForm";
 import './Comment.css';
+import AiRefinement from "./AiRefinement";
 
 const dateHelper = (date) => {
     const formatNumber = (number) => {
@@ -55,7 +56,10 @@ export default Comment = forwardRef((props, ref) => {
 
     const user = data.user;
     const userName = data.user.name;
+    const commentUserName = userName;
     const text = data.text || "";
+
+    const typing = comment.typing;
 
     let style = {};
 
@@ -67,6 +71,7 @@ export default Comment = forwardRef((props, ref) => {
     const [top, setTop] = useState(position.top);
     const [isEdit, setIsEdit] = useState(false);
     const [editReply, setEditReply] = useState("");
+    const [aiRefinementShow, setAiRefinementShow] = React.useState(false);
 
     useEffect(() => {
         setTop(cardTop);
@@ -84,6 +89,38 @@ export default Comment = forwardRef((props, ref) => {
         const user = reply.data.user;
         const userName = user.name;
         const html = reply.data.text;
+        const ai = reply.data.ai; // used for ai skills
+
+
+        console.log("REPLY", reply);
+
+        const handleTakeOver = (refinedTextHtml) => {
+            console.log("GONNA TAKE OVER", refinedTextHtml);
+            setAiRefinementShow(false);
+            const marker = csc.getMarker(id, commentUserName);
+            csc.replaceMarkedTextHtml(refinedTextHtml, marker);
+            csc.setSelectedCommentId();
+        }
+
+        const aiField = ai && <div className={"ai"}>
+            <div className={"ai-text"}>
+                {ai.data.prediction}
+            </div>
+            <Button variant="outline-primary" size="sm" onClick={e => {
+                setAiRefinementShow(true);
+                e.preventDefault();
+                e.stopPropagation();
+                e.nativeEvent.stopImmediatePropagation();
+            }}>Details &amp; Take over</Button>
+
+            <AiRefinement
+                ai={ai}
+                user={user}
+                show={aiRefinementShow}
+                onHide={() => setAiRefinementShow(false)}
+                handleTakeOver={handleTakeOver}
+            />
+        </div>
 
         const editReplyForm = <CommentForm comment={reply}
                                            top={top}
@@ -113,6 +150,7 @@ export default Comment = forwardRef((props, ref) => {
             </Dropdown.Menu>
         </Dropdown>
 
+
         return <div className={"reply"} key={reply.id}>
             <div className={"reply-title"}>
                 <div className={"comment-info-left"}>
@@ -125,10 +163,11 @@ export default Comment = forwardRef((props, ref) => {
                     </div>
                 </div>
                 <div className={"comment-info-right"}>
-                    {options}
+                    { (me.id === user.id) && options }
                 </div>
             </div>
             {(editReply === reply.id && editReplyForm) || <div dangerouslySetInnerHTML={{__html: html}}></div>}
+            { aiField }
         </div>
     });
 
@@ -199,6 +238,10 @@ export default Comment = forwardRef((props, ref) => {
     </OverlayTrigger>
 
 
+    const typingNames = typing.map(user => user.name);
+    const typingNotification = typingNames && typingNames.length > 0 && <div className={"typing-names"}>
+        {typingNames.join(", ")} typing ...
+    </div>;
 
     return (
         <Card ref={ref} id={id} className={className} style={style} onClick={select}>
@@ -223,6 +266,7 @@ export default Comment = forwardRef((props, ref) => {
             <div>
                 { replies }
             </div>
+            { typingNotification }
             { commentField }
         </Card>
     );
