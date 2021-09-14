@@ -111,6 +111,7 @@ function CommentForm(props) {
                             if (selectedCard === id) {
                                 selectHandler();
                             }
+                            console.log("THE ID", id);
                             csc.cancelComment(id);
                             setIsFocused(false);
                             setResetTrigger(inputText);

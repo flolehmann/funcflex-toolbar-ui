@@ -29,9 +29,8 @@ function Sidebar(props) {
         })
         .reduce((r, [k, v]) => ({ ...r, [k]: v }), {});
         setSortedCommentRects(sorted);
-        // merge comments and newComments
-        setComments({...commentState.comments, ...commentState.newComments});
-    }, [commentState.commentRects, commentRectsLength, commentState.comments, commentState.newComments]);
+        setComments({ ...commentState.comments });
+    }, [ commentState.commentRects, commentRectsLength, commentState.comments ]);
 
     useEffect(() => {
         // remove nodes of deleted comments

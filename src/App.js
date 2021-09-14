@@ -29,7 +29,7 @@ const editorConfiguration = {
   toolbar: [ 'undo', 'redo', 'bold', 'italic', 'underline']
 };
 
-const data = '<p>Hello World</p> <p><span class="annotation comment comment-VqU-Nqt3KIfJpa1BlkKC9 comment-by-Human User" data-comment-id="VqU-Nqt3KIfJpa1BlkKC9" data-annotation-type="comment" data-user-id="Human User">Sehr gut</span></p>';
+const data = '<p>Hello World</p>';
 
 const prototypeConfig = {
   documentName: "Text Summary",
@@ -38,10 +38,6 @@ const prototypeConfig = {
 
 const initialCommentState = {
     comments: {},
-    newComments: {},
-    cancelledComments: {},
-    approvedComments: {},
-    deletedComments: {},
     commentRects: {},
     selectedCommentId: ""
 };
@@ -78,11 +74,27 @@ const initialUserState = {
     me: initialMeState
 }
 
+export const CommentStatus = Object.freeze({
+    "NEW": "NEW",
+    "POSTED": "POSTED",
+    "CANCELLED": "CANCELLED",
+    "APPROVED": "APPROVED",
+    "DELETED": "DELETED"
+});
+
+export const CommentAction = Object.freeze({
+    "ADD": "ADD",
+    "POST": "POST",
+    "REDO": "REDO",
+    "UNDO": "UNDO",
+    "CANCEL": "CANCEL",
+    "APPROVE": "APPROVE",
+    "DELETE": "DELETE"
+});
 
 const commentReducer = (state, action) => {
     const id = action.payload.id || action.payload.commentId || null;
-    const canceledCommentId = action.payload.canceledCommentId || null;
-    const newComment = action.payload.newComment || null;
+    const comment = action.payload.comment || null;
     const commentRects = action.payload.commentRects;
     const reply = action.payload.reply || null;
     const replyId = action.payload.replyId || null;
@@ -90,112 +102,131 @@ const commentReducer = (state, action) => {
 
     const comments = state.comments;
     const replies = state.comments.replies;
-    const newComments = state.newComments;
 
     const selectedCommentId = action.payload.selectedCommentId || "";
 
     const user = action.payload.user;
 
-    let comment;
+    let tempComment;
     let replyIndex;
     let userIndex;
 
     switch (action.type) {
         case 'addComment':
+            console.log("ADD DEM")
             return { ...state,
-                newComments: { ...state.newComments, [newComment.id]: newComment },
+                comments: { ...state.comments, [comment.id]: comment },
                 commentRects: commentRects || state.commentRects,
             };
         case 'postComment':
-            delete newComments[newComment.id]
+            comment.state = CommentStatus.POSTED
+            comment.history = [...comment.history, {
+                state: CommentStatus.POSTED,
+                time: Date.now()
+            }];
             return { ...state,
                 comments: {
-                    ...state.comments, [newComment.id]: newComment
-                },
-                newComments: newComments
+                    ...state.comments, [comment.id]: comment
+                }
             };
         case 'editComment':
-            comment = comments[id];
-            comment.data.text = text;
+            tempComment = { ...comments[id] };
+            tempComment.data.text = text;
             return { ...state,
-                comments: {...comments, [id]: comment}
+                comments: {...comments, [id]: tempComment}
             };
         case 'cancelComment':
-            delete newComments[canceledCommentId]
+            tempComment = { ...comments[id] };
+            tempComment.state = CommentStatus.CANCELLED;
+            tempComment.history = [...tempComment.history, {
+                state: CommentStatus.CANCELLED,
+                time: Date.now()
+            }];
             return { ...state,
-                newComments: newComments,
+                comments: {
+                    ...state.comments, [tempComment.id]: tempComment
+                },
                 commentRects: commentRects || state.commentRects
             };
         case 'approveComment':
-            comment = comments[id];
-            delete comments[id];
+            tempComment = { ...comments[id] };
+            tempComment.state = CommentStatus.APPROVED;
+            tempComment.history = [...tempComment.history, {
+                state: CommentStatus.APPROVED,
+                time: Date.now()
+            }];
             return { ...state,
-                comments: comments,
-                approvedComments: {
-                    ...state.approvedComments, [id]: comment,
+                comments: {
+                    ...state.comments, [tempComment.id]: tempComment
                 },
                 commentRects: commentRects || state.commentRects
             };
         case 'deleteComment':
-            comment = comments[id];
-            delete comments[id];
+            tempComment = { ...comments[id] };
+            tempComment.state = CommentStatus.DELETED;
+            tempComment.history = [...tempComment.history, {
+                state: CommentStatus.DELETED,
+                time: Date.now()
+            }];
             return { ...state,
-                comments: comments,
-                deletedComments: {
-                    ...state.deletedComments, [id]: comment,
+                comments: {
+                    ...state.comments, [tempComment.id]: tempComment
                 },
                 commentRects: commentRects || state.commentRects
             };
         case 'typingReply':
-            comment = comments[id];
-            comment.typing.push(user);
+            tempComment = { ...comments[id] };
+            tempComment.typing = [...tempComment.typing, user];
             return { ...state,
-                comments: {...comments, [id]: comment}
+                comments: {...comments, [id]: tempComment}
             };
         case 'removeTyping':
-            comment = comments[id];
+            tempComment = { ...comments[id] };
             userIndex = comment.typing.findIndex(u => u.id === user.id);
-            comment.typing.splice(userIndex, 1);
+            tempComment.typing.splice(userIndex, 1);
             return { ...state,
-                comments: {...comments, [id]: comment}
+                comments: {...comments, [id]: tempComment}
             };
         case 'postReply':
-            comment = comments[id];
-            comment.replies.push(reply);
-            userIndex = comment.typing.findIndex(u => u.id === reply.data.user.id);
-            comment.typing.splice(userIndex, 1);
+            tempComment = { ...comments[id] };
+            tempComment.replies = [ ...tempComment.replies, reply];
+            userIndex = tempComment.typing.findIndex(u => u.id === reply.data.user.id);
+            tempComment.typing.splice(userIndex, 1);
             return { ...state,
                 comments: {
-                    ...state.comments, [comment.id]: comment
+                    ...state.comments, [id]: tempComment
                 }
             };
         case 'editReply':
-            comment = comments[id];
-            replyIndex = comment.replies.findIndex(reply => reply.id === replyId);
-            const editReply = comment.replies[replyIndex];
+            tempComment = { ...comments[id] };
+            replyIndex = tempComment.replies.findIndex(reply => reply.id === replyId);
+            const editReply = { ...tempComment.replies[replyIndex] };
             editReply.data.text = text;
-            comment.replies[replyIndex] = editReply;
+            tempComment.replies[replyIndex] = editReply;
             return { ...state,
                 comments: {
-                    ...state.comments, [comment.id]: comment
+                    ...state.comments, [id]: tempComment
                 }
             };
         case 'deleteReply':
-            comment = comments[id];
-            replyIndex = comment.replies.findIndex(reply => reply.id === replyId);
-            const deletedReply = comment.replies[replyIndex];
-            comment.replies.splice(replyIndex, 1);
-            comment.deletedReplies.push(deletedReply);
+            tempComment = { ...comments[id] };
+            replyIndex = tempComment.replies.findIndex(reply => reply.id === replyId);
+            const deletedReply = { ...tempComment.replies[replyIndex] };
+            deletedReply.state = CommentStatus.DELETED;
+            deletedReply.history = [...deletedReply.history, {
+                state: CommentStatus.DELETED,
+                time: Date.now()
+            }];
+            tempComment.replies[replyIndex] = deletedReply;
             return { ...state,
                 comments: {
-                    ...state.comments, [comment.id]: comment
+                    ...state.comments, [id]: tempComment
                 }
             };
         case 'updateCommentRects':
             // fast and naive comparison of commentRects
             const a = JSON.stringify(commentRects);
             const b = JSON.stringify(state.commentRects);
-
             if (a === b) {
                 return state;
             }
@@ -286,7 +317,7 @@ function App(){
             setClickObserver();
             setOnClickMarker();
             if (editor && highlightSelector) {
-                console.log("Init done!")
+                console.log("Init done!");
                 setInit(true);
             }
         }
@@ -307,33 +338,42 @@ function App(){
         const id = highlightSelector.add("comment", user.name, onMarkerChange);
         const newComment = {
             id: id,
+            state: CommentStatus.NEW,
             data: {
                 user: user,
                 date: Date.now()
             },
             replies: [],
-            deletedReplies: [],
-            typing: []
+            //deletedReplies: [],
+            typing: [],
+            history: [
+                {
+                    state: CommentStatus.NEW,
+                    time: Date.now()
+                }
+            ]
         }
         const commentRects = getCommentRects();
         commentDispatch({
             type: 'addComment',
             payload: {
-                newComment: newComment,
+                comment: newComment,
                 commentRects: commentRects
             }
         });
     }
 
     const postComment = (id, text) => {
-        const newComment = commentState.newComments[id];
-        newComment.data.text = text;
+        const comment = commentState.comments[id];
+        comment.data.text = text;
         commentDispatch({
             type: 'postComment',
             payload: {
-                newComment: newComment
+                comment: comment
             }
         });
+        // set usingOperation to true just here, that comments w/o text won't be registered in the batch
+        // highlightSelector.update("comment", id, comment.data.user.name, {usingOperation: true});
 
         // add intelligence
         const matches = parseMessage(text, "@agent");
@@ -343,9 +383,9 @@ function App(){
             const intent = detectIntent(text);
             const agent = userState.users.filter(user => user.tag === "@agent")[0];
             intent.then(result => {
-                console.log(newComment);
+                console.log(comment);
                 //get marked text from editor
-                const marker = getMarker(id, newComment.data.user.name);
+                const marker = getMarker(id, comment.data.user.name);
                 const markedText = getMarkerText(marker);
                 const ranges = marker.getRange();
 
@@ -410,14 +450,14 @@ function App(){
         if (!highlightSelector) {
             return null;
         }
-        const cancelledComment = commentState.newComments[id];
+        const cancelledComment = commentState.comments[id];
         const user = cancelledComment.data.user.name;
         highlightSelector.remove("comment", id, user);
         const commentRects = getCommentRects();
         commentDispatch({
             type: 'cancelComment',
             payload: {
-                canceledCommentId: id,
+                id: id,
                 commentRects: commentRects
             }
         });
@@ -472,12 +512,19 @@ function App(){
     const postReply = (id, text, user) => {
         const reply = {
             id: nanoid(),
+            state: CommentStatus.POSTED,
             data: {
                 user: user,
                 text: text,
                 time: Date.now()
             },
             replies: [],
+            history: [
+                {
+                    state: CommentStatus.POSTED,
+                    time: Date.now()
+                }
+            ]
         };
 
         commentDispatch({
@@ -492,6 +539,7 @@ function App(){
     const postAiReply = (id, text, user, ai) => {
         const reply = {
             id: nanoid(),
+            state: CommentStatus.POSTED,
             data: {
                 user: user,
                 text: text,
@@ -499,6 +547,12 @@ function App(){
                 ai: ai
             },
             replies: [],
+            history: [
+                {
+                    state: CommentStatus.POSTED,
+                    time: Date.now()
+                }
+            ]
         };
 
         commentDispatch({

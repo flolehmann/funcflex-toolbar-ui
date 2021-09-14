@@ -70,72 +70,12 @@ export default class HighlightSelector extends Plugin {
             view: 'annotation'
         });
 
-        // editor.model.schema.extend( '$text', { allowAttributes: 'span' } );
-        // editor.model.schema.setAttributeProperties( 'span', {
-        //     isFormatting: true,
-        //     copyOnEnter: true
-        // } );
-        // editor.conversion.for( 'upcast' ).elementToMarker( {
-        //     view: {
-        //         name: 'span',
-        //         attributes: {
-        //             'data-annotation-type': 'comment'
-        //         }
-        //     },
-        //     model:( viewElement, conversionApi ) => {
-        //                 console.log("EEEEY", viewElement.getAttribute('data-annotation-type'), conversionApi);
-        //                 const annotationType =  viewElement.getAttribute('data-annotation-type');
-        //                 const dataCommentId = viewElement.getAttribute('data-comment-id');
-        //                 const userId = viewElement.getAttribute('data-user-id');
-        //
-        //                 const arr = [
-        //                     'annotation',
-        //                     annotationType,
-        //                     dataCommentId,
-        //                     userId
-        //                 ];
-        //                 return arr.join(":");
-        //                 //return 'annotation'
-        //             },
-        // } );
-        //
-        // editor.conversion.for( 'editingDowncast' ).markerToElement( {
-        //     model: 'annotation',
-        //     view: ( markerData, conversionApi ) => {
-        //         console.log("H§H§", markerData);
-        //         const [ , annotationType, annotationId, userId ] = markerData.markerName.split(':');
-        //         const { writer } = conversionApi;
-        //
-        //         return writer.createUIElement( 'span', {
-        //             'data-annotation-type': annotationType,
-        //             'data-comment-id': annotationId,
-        //             'data-user-id': userId
-        //         } );
-        //     }
-        // } );
-
-
         const undoCommand = editor.commands.get( 'undo' );
         const redoCommand = editor.commands.get( 'redo' );
 
         undoCommand.on( 'execute', eventInfo => {
-            console.log( 'Undo has been fired.' );
-            console.log(eventInfo);
-        } );
-
-        undoCommand.on( 'revert', eventInfo => {
-            console.log( 'undo revert has been fired.' );
-            console.log(eventInfo);
-        } );
-
-        undoCommand.on( 'change', ( evt, propertyName, newValue, oldValue ) => {
-            console.log("undo change");
-            console.log( `${ propertyName } has changed from ${ oldValue } to ${ newValue }` );
-        } );
-
-        undoCommand.on( 'change:value', ( evt, propertyName, newValue, oldValue ) => {
-            console.log("value undo change");
-            console.log( `${ propertyName } has changed from ${ oldValue } to ${ newValue }` );
+            console.log( 'Undo has been fired.', undoCommand, eventInfo);
+            console.log(eventInfo.return);
         } );
 
         redoCommand.on( 'execute', eventInfo => {
@@ -143,28 +83,9 @@ export default class HighlightSelector extends Plugin {
             console.log(eventInfo);
         } );
 
-        redoCommand.on( 'change', ( evt, propertyName, newValue, oldValue ) => {
-            console.log("redo change");
-            console.log( `${ propertyName } has changed from ${ oldValue } to ${ newValue }` );
-        } );
-
-        redoCommand.on( 'change:value', ( evt, propertyName, newValue, oldValue ) => {
-            console.log("value undo change");
-            console.log( `${ propertyName } has changed from ${ oldValue } to ${ newValue }` );
-        } );
-
-        redoCommand.on( 'set:prop', ( evt, propertyName, newValue, oldValue ) => {
-            console.log( `Value is going to be changed from ${ oldValue } to ${ newValue }` );
-            console.log( `Current property value is ${ redoCommand[ propertyName ] }` );
-
-            // Let's override the value.
-            evt.return = 3;
-        } );
-
         editor.model.on ('applyOperation', (eventInfo, args) => {
             console.log("APPLY OP", eventInfo, args);
         })
-
     }
 
     markerHighlightView(data, conversionApi) {
@@ -202,7 +123,7 @@ export default class HighlightSelector extends Plugin {
         editor.model.change( writer => {
             for (const range of editor.model.document.selection.getRanges()) {
                 console.log("Add Annotation:", annotationType, id, "user: " + userId);
-                const marker = writer.addMarker(this.createAnnotationIdentifier(annotationType, id, userId), { range, usingOperation: true, affectsData: true  } );
+                const marker = writer.addMarker(this.createAnnotationIdentifier(annotationType, id, userId), { range, usingOperation: false, affectsData: true  } );
                 console.log(marker)
                 if (onChangeEventCallback) {
                     marker.on('change:range', (eventInfo, oldRange, data) => {
@@ -233,11 +154,19 @@ export default class HighlightSelector extends Plugin {
         return this.rects;
     }
 
-    update(annotationType, annotationId, userId = null) {
+    update(annotationType, annotationId, userId = null, options) {
         const editor = this.editor;
         const markerIdentifier = this.createAnnotationIdentifier(annotationType, annotationId, userId);
+        const marker = editor.model.markers.get(markerIdentifier);
+        if (!marker) {
+            return;
+        }
 
-        editor.model.change(writer => writer.updateMarker(markerIdentifier));
+        if (options) {
+            editor.model.change(writer => writer.updateMarker(markerIdentifier, options));
+        } else {
+            editor.model.change(writer => writer.updateMarker(markerIdentifier));
+        }
     }
 
     getMarker(annotationType, annotationId, userId = null) {

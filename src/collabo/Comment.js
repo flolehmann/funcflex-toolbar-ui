@@ -1,7 +1,7 @@
 import React, {useContext, useState, forwardRef, useEffect} from 'react';
 import {Button, Card, Col, Dropdown, Form, Image, OverlayTrigger, Row, Tooltip} from "react-bootstrap";
 import {CheckLg, ThreeDotsVertical} from 'react-bootstrap-icons';
-import {CommentsSidebarContext, UserContext} from "../App";
+import {CommentsSidebarContext, CommentStatus, UserContext} from "../App";
 import CommentForm from "./CommentForm/CommentForm";
 import './Comment.css';
 import AiRefinement from "./AiRefinement";
@@ -85,6 +85,10 @@ export default Comment = forwardRef((props, ref) => {
     }
 
     const replies = comment.replies.length === 0 ? null : comment.replies.map(reply => {
+        // skip deleted replies
+        if (reply.state === CommentStatus.DELETED) {
+            return null;
+        }
         const date = dateHelper(new Date(reply.data.time));
         const user = reply.data.user;
         const userName = user.name;
