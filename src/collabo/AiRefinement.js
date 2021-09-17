@@ -32,7 +32,7 @@ export default function AiRefinement(props) {
             <Modal.Body>
                 <ContentEditable
                     className={"content-editable, form-control"}
-                    style={{ height: '350px' }}
+                    style={{ minHeight: '350px' }}
                     html={refinedText} // innerHTML of the editable div
                     onChange={e => setRefinedText(e.target.value)} // handle innerHTML change
                     tagName='div' // Use a custom HTML tag (uses a div by default)

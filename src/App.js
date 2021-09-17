@@ -22,6 +22,7 @@ import "./ckeditor/highlight-selector/HighlightSelector.css";
 import CommentBalloon from "./collabo/CommentBalloon";
 import Topbar from "./collabo/Topbar";
 import {detectIntent, generate, parseMessage, summarize, translateDeEn} from "./intelligence/Conversation";
+import {Emulator, Task, TaskTrigger} from "./intelligence/Emulator";
 
 
 const editorConfiguration = {
@@ -32,8 +33,8 @@ const editorConfiguration = {
 const data = '<p>Hello World</p>';
 
 const prototypeConfig = {
-  documentName: "Text Summary",
-  documentDescription: "Delegate the agent to summarize the text using the interactive comments.",
+  documentName: "Text Document #2",
+  documentDescription: "Delegate the agent to summarize, extend, or translate text using the interactive comments.",
 };
 
 const initialCommentState = {
@@ -279,6 +280,8 @@ const userReducer = (state, action) => {
 export const CommentsSidebarContext = React.createContext(null);
 export const UserContext = React.createContext(null);
 
+const emulator = new Emulator();
+
 function App(){
 
     const ckEditorRef = useRef(null);
@@ -305,7 +308,6 @@ function App(){
     const [commentState, commentDispatch] = useReducer(commentReducer, initialCommentState);
     const [userState, userDispatch] = useReducer(userReducer, initialUserState);
 
-
     const initialize = () => {
         if (!init) {
             getPlugin();
@@ -322,6 +324,7 @@ function App(){
             }
         }
     }
+
 
     const getPlugin = () => {
         if (!editor || highlightSelector) {
@@ -372,67 +375,67 @@ function App(){
                 comment: comment
             }
         });
+        intelligence(id, text, comment);
         // set usingOperation to true just here, that comments w/o text won't be registered in the batch
         // highlightSelector.update("comment", id, comment.data.user.name, {usingOperation: true});
+    }
 
-        // add intelligence
+    const intelligence = async (id, text, comment) => {
         const matches = parseMessage(text, "@agent");
         if (matches) {
-            console.log("MATCHES", matches);
-            //infer intent from comment
-            const intent = detectIntent(text);
             const agent = userState.users.filter(user => user.tag === "@agent")[0];
-            intent.then(result => {
-                console.log(comment);
-                //get marked text from editor
+            // infer intent from comment
+            try {
+                const intentResult = await detectIntent(text);
+
+                // get marked text from editor
                 const marker = getMarker(id, comment.data.user.name);
                 const markedText = getMarkerText(marker);
                 const ranges = marker.getRange();
+                // display "Agent typing..."
+                const typing = () => {
+                    typingReply(id, agent)
+                };
 
-                commentDispatch({
-                    type: 'typingReply',
-                    payload: {
-                        id: id,
-                        user: agent
-                    }
-                });
+                if (intentResult.intent.name === "summarize") {
 
-                //replaceMarkedText("LOL", marker);
-                if (result.intent.name === "summarize") {
-                    const summary = summarize(markedText);
-                    summary.then(result => {
-
-                        console.log(result)
+                    const method = async () => {
+                        const summaryResult = await summarize(markedText);
                         const ai = {
                             skill: "summarization",
-                            data: result
+                            data: summaryResult
                         };
-
                         // TODO: Replace static text by rasa response
                         postAiReply(id, "Here is the summarized text", agent, ai);
-                    });
-                } else if (result.intent.name === "translateDeEn") {
-                    const translatedDeEn = translateDeEn(markedText);
-                    translatedDeEn.then(result => {
-                        console.log(result);
-                        const ai = {
-                            skill: "translation_de_en",
-                            data: result
-                        };
-                        // TODO: Post as skill reply
-                    });
-                } else if (result.intent.name === "generate") {
-                    const generated = generate(markedText);
-                    generated.then(result => {
-                        console.log(result);
-                        const ai = {
-                            skill: "generation",
-                            data: result
-                        };
-                        // TODO: Post as skill reply
-                    });
+                        return summaryResult;
+                    };
+                    emulator.addTask(new Task(TaskTrigger.INSTANT, marker, intentResult.intent.name, typing, method));
+
+                } else if (intentResult.intent.name === "translate") {
+
+                    const translateResult = await translateDeEn(markedText);
+                    console.log(translateResult);
+                    const ai = {
+                        skill: "translation_de_en",
+                        data: translateResult
+                    };
+                    // TODO: Post as skill reply
+                    postAiReply(id, "I have translated the text from german to english", agent, ai);
+
+                } else if (intentResult.intent.name === "extend") {
+                    console.log("GONNA GENERATE");
+                    const generatedResult = await generate(markedText);
+                    console.log(generatedResult);
+                    const ai = {
+                        skill: "generation",
+                        data: generatedResult
+                    };
+                    // TODO: Post as skill reply
+                    postAiReply(id, "I have a the text extended for you", agent, ai);
                 }
-            });
+            } catch (err) {
+                console.log("INTENT DETECTION FAILED", err);
+            }
         }
     }
 
@@ -587,11 +590,9 @@ function App(){
     }
 
     const onMarkerChange = (deletionPosition, annotationType, id, user) => {
-        console.log("ON MARKER CHANGE", deletionPosition);
         if (deletionPosition) {
-            console.log("REMOVING MARKER");
-             highlightSelector.remove(annotationType, id, user);
-             updateCommentRects();
+            highlightSelector.remove(annotationType, id, user);
+            updateCommentRects();
         }
     }
 
@@ -760,6 +761,10 @@ function App(){
     }, []);
 
     useEffect(() => {
+        emulator.start();
+    }, []);
+
+    useEffect(() => {
         // unselect comment, if comment balloon gets displayed
         // comment ballon's visibility is defined by showCommentBalloon and an existing caretRect
         if (showCommentBalloon && caretRect !== null && commentState.selectedCommentId) {
@@ -770,8 +775,6 @@ function App(){
             }
         }
     }, [caretRect]);
-
-    console.log("COMMENTSTATE", commentState);
 
     return (
         <UserContext.Provider value={{
@@ -799,19 +802,16 @@ function App(){
                                               toolbarContainer.appendChild( editor.ui.view.toolbar.element );
                                           } }
                                           onChange={ ( event, editor ) => {
-                                              console.log("on change")
-                                              console.log(event);
-                                              console.log(editor.model.markers);
                                               const data = editor.getData();
-                                              console.log("DATA", data);
                                           } }
                                           onBlur={ ( event, editor ) => {
-                                            console.log( 'Blur.', editor );
                                               setShowCommentBalloon(false);
                                           } }
                                           onFocus={ ( event, editor ) => {
-                                            console.log( 'Focus.', editor );
                                               setShowCommentBalloon(true);
+                                              if (emulator.running) {
+                                                  //emulator.stop();
+                                              }
                                           } }
                                       />
                                 </Col>
