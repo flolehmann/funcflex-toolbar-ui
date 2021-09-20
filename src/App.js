@@ -21,8 +21,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import "./ckeditor/highlight-selector/HighlightSelector.css";
 import CommentBalloon from "./collabo/CommentBalloon";
 import Topbar from "./collabo/Topbar";
-import {detectIntent, generate, parseMessage, summarize, translateDeEn} from "./intelligence/Conversation";
-import {Emulator, Task, TaskTrigger} from "./intelligence/Emulator";
+import {detectIntent, generate, Intent, parseMessage, summarize, translateDeEn} from "./intelligence/Conversation";
+import {Emulator, Task, TaskTrigger, TimeConfig} from "./intelligence/Emulator";
 
 
 const editorConfiguration = {
@@ -376,8 +376,6 @@ function App(){
             }
         });
         intelligence(id, text, comment);
-        // set usingOperation to true just here, that comments w/o text won't be registered in the batch
-        // highlightSelector.update("comment", id, comment.data.user.name, {usingOperation: true});
     }
 
     const intelligence = async (id, text, comment) => {
@@ -392,46 +390,50 @@ function App(){
                 const marker = getMarker(id, comment.data.user.name);
                 const markedText = getMarkerText(marker);
                 const ranges = marker.getRange();
+
                 // display "Agent typing..."
                 const typing = () => {
                     typingReply(id, agent)
                 };
 
-                if (intentResult.intent.name === "summarize") {
-
-                    const method = async () => {
-                        const summaryResult = await summarize(markedText);
-                        const ai = {
-                            skill: "summarization",
-                            data: summaryResult
+                switch (intentResult.intent.name) {
+                    case Intent.SUMMARIZE:
+                        const summaryMethod = async () => {
+                            const summaryResult = await summarize(markedText);
+                            const ai = {
+                                skill: "summarization",
+                                data: summaryResult
+                            };
+                            // TODO: Replace static text by rasa response
+                            postAiReply(id, "Here is the summarized text", agent, ai);
                         };
-                        // TODO: Replace static text by rasa response
-                        postAiReply(id, "Here is the summarized text", agent, ai);
-                        return summaryResult;
-                    };
-                    emulator.addTask(new Task(TaskTrigger.INSTANT, marker, intentResult.intent.name, typing, method));
-
-                } else if (intentResult.intent.name === "translate") {
-
-                    const translateResult = await translateDeEn(markedText);
-                    console.log(translateResult);
-                    const ai = {
-                        skill: "translation_de_en",
-                        data: translateResult
-                    };
-                    // TODO: Post as skill reply
-                    postAiReply(id, "I have translated the text from german to english", agent, ai);
-
-                } else if (intentResult.intent.name === "extend") {
-                    console.log("GONNA GENERATE");
-                    const generatedResult = await generate(markedText);
-                    console.log(generatedResult);
-                    const ai = {
-                        skill: "generation",
-                        data: generatedResult
-                    };
-                    // TODO: Post as skill reply
-                    postAiReply(id, "I have a the text extended for you", agent, ai);
+                        const timeConfig = new TimeConfig(2000, 4000, 8000, 15000);
+                        emulator.addTask(new Task(TaskTrigger.TIME, marker, intentResult.intent.name, typing, summaryMethod, timeConfig));
+                        break;
+                    case Intent.TRANSLATE:
+                        const translateMethod = async () => {
+                            const translateResult = await translateDeEn(markedText);
+                            const ai = {
+                                skill: "translation_de_en",
+                                data: translateResult
+                            };
+                            // TODO: Replace static text by rasa response
+                            postAiReply(id, "I have translated the text from german to english", agent, ai);
+                        }
+                        emulator.addTask(new Task(TaskTrigger.INSTANT, marker, intentResult.intent.name, typing, translateMethod));
+                        break;
+                    case Intent.EXTEND:
+                        const extendMethod = async () => {
+                            const generatedResult = await generate(markedText);
+                            const ai = {
+                                skill: "generation",
+                                data: generatedResult
+                            };
+                            // TODO: Replace static text by rasa response
+                            postAiReply(id, "I have extended the text for you", agent, ai);
+                        }
+                        emulator.addTask(new Task(TaskTrigger.INSTANT, marker, intentResult.intent.name, typing, extendMethod));
+                        break;
                 }
             } catch (err) {
                 console.log("INTENT DETECTION FAILED", err);

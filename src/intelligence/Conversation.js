@@ -17,6 +17,11 @@ const APIS = {
     }
 };
 
+export const Intent = Object.freeze({
+    "SUMMARIZE": "summarize",
+    "TRANSLATE": "translate",
+    "EXTEND": "extend"
+});
 
 export const parseMessage = (message, search) => {
     const value = message.toLowerCase();
