@@ -48,7 +48,7 @@ const initialMeState =  {
     type: "human",
     name: "Human User",
     tag: "@human-user",
-    picture: process.env.PUBLIC_URL + "avatar-user.png",
+    picture: process.env.PUBLIC_URL + "user2.svg",
     online: true
 };
 
@@ -60,7 +60,7 @@ const initialUserState = {
             type: "ai",
             name: "Agent",
             tag: "@agent",
-            picture: process.env.PUBLIC_URL + "avatar-agent.png",
+            picture: process.env.PUBLIC_URL + "agent2.svg",
             online: false
         },
         {
@@ -68,7 +68,7 @@ const initialUserState = {
             type: "ai",
             name: "Tim Jung",
             tag: "@tim-jung",
-            picture: process.env.PUBLIC_URL + "avatar-user.png",
+            picture: process.env.PUBLIC_URL + "agent3.svg",
             online: false
         }
     ],
@@ -105,6 +105,8 @@ const commentReducer = (state, action) => {
     const replies = state.comments.replies;
 
     const selectedCommentId = action.payload.selectedCommentId || "";
+
+    const suggestionId = action.payload.suggestionId || null;
 
     const user = action.payload.user;
 
@@ -240,6 +242,13 @@ const commentReducer = (state, action) => {
                 ...state,
                 selectedCommentId: selectedCommentId
             }
+        case 'addSuggestion':
+            tempComment = { ...comments[id] };
+            tempComment.suggestionId = suggestionId;
+            console.log("addSuggestion reducer", suggestionId);
+            return { ...state,
+                comments: {...comments, [id]: tempComment}
+            };
         default:
             throw new Error();
     }
@@ -349,6 +358,7 @@ function App(){
             replies: [],
             //deletedReplies: [],
             typing: [],
+            suggestionId: null,
             history: [
                 {
                     state: CommentStatus.NEW,
@@ -379,7 +389,8 @@ function App(){
     }
 
     const intelligence = async (id, text, comment) => {
-        const matches = parseMessage(text, "@agent");
+        //const matches = parseMessage(text, "@agent");
+        const matches = true;
         if (matches) {
             const agent = userState.users.filter(user => user.tag === "@agent")[0];
             // infer intent from comment
@@ -626,6 +637,16 @@ function App(){
         });
     }
 
+    const addSuggestion = (commentId, suggestionId) => {
+        commentDispatch({
+            type: 'addSuggestion',
+            payload: {
+                commentId: commentId,
+                suggestionId: suggestionId
+            }
+        });
+    }
+
     const setUserOnline = (userId, online) => {
         userDispatch({
             type: 'setOnline',
@@ -638,6 +659,13 @@ function App(){
 
     const getCaretRect = (rect) => {
         setCaretRect(rect);
+    }
+
+    const addSuggestionMarkerAtRange = (range, user) => {
+        if (!highlightSelector) {
+            return;
+        }
+        return highlightSelector.addAtRange(range,"suggestion", user.name, onMarkerChange)
     }
 
     const getMarker = (id, user) => {
@@ -668,11 +696,18 @@ function App(){
         return highlightSelector.replaceMarkedTextHtml(html, marker);
     }
 
-    const addAfterMarkedText = (text, marker) => {
+    const insertAfterMarkedText = (text, marker, insertElement = false) => {
         if (!highlightSelector) {
             return;
         }
-        return highlightSelector.insertAfterMarkedText(text, marker);
+        return highlightSelector.insertAfterMarkedText(text, marker, insertElement);
+    }
+
+    const createParagraphWithText = (text) => {
+        if (!highlightSelector) {
+            return;
+        }
+        return highlightSelector.createParagraphWithText(text);
     }
 
     const setCurrentSelectedComment = (id, user) => {
@@ -770,7 +805,8 @@ function App(){
         // unselect comment, if comment balloon gets displayed
         // comment ballon's visibility is defined by showCommentBalloon and an existing caretRect
         if (showCommentBalloon && caretRect !== null && commentState.selectedCommentId) {
-            const comment = commentState.comments[commentState.selectedCommentId] || commentState.newComments[commentState.selectedCommentId];
+            const comment = commentState.comments[commentState.selectedCommentId] ||
+                (commentState.newComments && commentState.newComments[commentState.selectedCommentId]);
             if (comment) {
                 unsetCurrentSelectedComment(comment.id, comment.data.user.name, true);
                 setSelectedCommentId();
@@ -829,12 +865,16 @@ function App(){
                                         editReply: editReply,
                                         deleteReply: deleteReply,
                                         setSelectedCommentId: setSelectedCommentId,
+                                        addSuggestion: addSuggestion,
                                         setCurrentSelectedComment: setCurrentSelectedComment,
                                         unsetCurrentSelectedComment: unsetCurrentSelectedComment,
                                         getMarker: getMarker,
                                         getMarkedText: getMarkerText,
                                         replaceMarkedText: replaceMarkedText,
-                                        replaceMarkedTextHtml: replaceMarkedTextHtml
+                                        replaceMarkedTextHtml: replaceMarkedTextHtml,
+                                        insertAfterMarkedText: insertAfterMarkedText,
+                                        createParagraphWithText: createParagraphWithText,
+                                        addSuggestionMarkerAtRange: addSuggestionMarkerAtRange
                                     }}>
                                         <Sidebar sidebarOffsetTop={sidebarOffsetTop} commentRectsLength={Object.keys(commentState.commentRects).length}/>
                                     </CommentsSidebarContext.Provider>

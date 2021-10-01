@@ -138,6 +138,25 @@ export default class HighlightSelector extends Plugin {
         return id;
     }
 
+    addAtRange(range, annotationType, userId = null, onChangeEventCallback = null) {
+        const editor = this.editor;
+        let id = nanoid();
+        editor.model.change( writer => {
+            console.log("Add Annotation:", annotationType, id, "user: " + userId);
+            const marker = writer.addMarker(this.createAnnotationIdentifier(annotationType, id, userId), { range, usingOperation: false, affectsData: true  } );
+            console.log(marker)
+            if (onChangeEventCallback) {
+                marker.on('change:range', (eventInfo, oldRange, data) => {
+                    console.log(annotationType, id, "user: " + userId);
+                    console.log("MARKER EVENT!");
+                    console.log("INSIGHTS", eventInfo, oldRange, data);
+                    onChangeEventCallback(data.deletionPosition, annotationType, id, userId);
+                });
+            }
+        });
+        return id;
+    }
+
     remove(annotationType, annotationId, userId = null) {
         console.log("Remove Annotation:", annotationType, annotationId);
         const editor = this.editor;
@@ -209,11 +228,33 @@ export default class HighlightSelector extends Plugin {
         editor.model.insertContent(modelFragment, range);
     }
 
-    insertAfterMarkedText (text, marker) {
+    insertAfterMarkedText (text, marker, insertElement = false) {
+        console.log("insertAfterMarkedText");
+        let range;
         const editor = this.editor;
         editor.model.change( writer => {
-            writer.insertText( 'text', marker.getEnd(), 'after' );
+            if (insertElement) {
+                console.log("INSERT CONTENT")
+                console.log(marker.getEnd());
+                writer.insert( text, marker.getEnd(), 'after');
+            } else {
+                console.log("INSERT TEXT");
+                //writer.insertText( text, marker.getEnd(), 'after' );
+                const spaceRange = editor.model.insertContent(writer.createText(" "), marker.getEnd(), 'after');
+                range = editor.model.insertContent( writer.createText(text), spaceRange.end, 'after');
+            }
         });
+        return range;
+    }
+
+    createParagraphWithText(text) {
+        let paragraph;
+        const editor = this.editor;
+        editor.model.change( writer => {
+            paragraph = writer.createElement( 'paragraph' );
+            writer.insertText( text, paragraph );
+        });
+        return paragraph;
     }
 
     createAnnotationIdentifier(annotationType, id, userId = null) {

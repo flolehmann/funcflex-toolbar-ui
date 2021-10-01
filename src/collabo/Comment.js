@@ -5,6 +5,7 @@ import {CommentsSidebarContext, CommentStatus, UserContext} from "../App";
 import CommentForm from "./CommentForm/CommentForm";
 import './Comment.css';
 import AiRefinement from "./AiRefinement";
+import CopyToClipboard from "./CopyToClipboard";
 
 const dateHelper = (date) => {
     const formatNumber = (number) => {
@@ -61,6 +62,8 @@ export default Comment = forwardRef((props, ref) => {
 
     const typing = comment.typing;
 
+    const suggestionId = comment.suggestionId;
+
     let style = {};
 
     const suggestions = [...usc.userState.users];
@@ -95,7 +98,6 @@ export default Comment = forwardRef((props, ref) => {
         const html = reply.data.text;
         const ai = reply.data.ai; // used for ai skills
 
-
         console.log("REPLY", reply);
 
         const handleTakeOver = (refinedTextHtml) => {
@@ -106,18 +108,86 @@ export default Comment = forwardRef((props, ref) => {
             csc.setSelectedCommentId();
         }
 
+        const insertSuggestionAfterMarker = refinedTextHtml => {
+            const marker = csc.getMarker(id, commentUserName);
+            const range = csc.insertAfterMarkedText(refinedTextHtml, marker, false);
+            return addSuggestionMarkerAtRange(range, user);
+        }
+
+        const addSuggestionMarkerAtRange = (range, user) => {
+            return csc.addSuggestionMarkerAtRange(range, user);
+        }
+
+        const createParagraphWithText = text => {
+             return csc.createParagraphWithText(text);
+        }
+
+/*        <Button variant="outline-primary" size="sm" onClick={e => {
+            setAiRefinementShow(true);
+            e.preventDefault();
+            e.stopPropagation();
+            e.nativeEvent.stopImmediatePropagation();
+        }}>Details &amp; Take over</Button>*/
+
+
+        const renderTooltip = (props) => (
+            <Tooltip id="button-tooltip" {...props}>
+                Copied to clipoard!
+            </Tooltip>
+        );
+
         const aiField = ai && <div className={"ai"}>
             <div className={"ai-text"}>
                 {ai.data.prediction}
             </div>
-            <Button variant="outline-primary" size="sm" onClick={e => {
-                setAiRefinementShow(true);
-                e.preventDefault();
-                e.stopPropagation();
-                e.nativeEvent.stopImmediatePropagation();
-            }}>Details &amp; Take over</Button>
+
+            {/*<OverlayTrigger*/}
+            {/*    trigger="click"*/}
+            {/*    placement="top"*/}
+            {/*    delay={{ show: 300, hide: 500 }}*/}
+            {/*    overlay={renderTooltip}*/}
+            {/*    onToggle={ e => {*/}
+            {/*        console.log("onToggle", e);*/}
+            {/*        console.log(this);*/}
+            {/*        console.log(e);*/}
+            {/*        console.log(props);*/}
+            {/*        return false;*/}
+            {/*    }}*/}
+            {/*>*/}
+            {/*    <Button variant="outline-primary" size="sm" onClick={e => {*/}
+            {/*        let promise = navigator.clipboard.writeText(ai.data.prediction);*/}
+            {/*        console.log(promise);*/}
+            {/*        e.preventDefault();*/}
+            {/*        e.stopPropagation();*/}
+            {/*        e.nativeEvent.stopImmediatePropagation();*/}
+            {/*    }}>Copy to clipboard</Button>*/}
+            {/*</OverlayTrigger>*/}
+
+            {/*<Button variant="outline-primary" size="sm" onClick={e => {*/}
+            {/*    setAiRefinementShow(true);*/}
+            {/*    e.preventDefault();*/}
+            {/*    e.stopPropagation();*/}
+            {/*    e.nativeEvent.stopImmediatePropagation();*/}
+            {/*}}>Show Details</Button>*/}
+
+            <Button onClick={ e => {
+                const suggestionId = insertSuggestionAfterMarker(ai.data.prediction);
+                console.log("SUGGESTION ID", suggestionId);
+                csc.addSuggestion(id, suggestionId);
+            }
+            }>Insert after</Button>
+
+            <Button onClick={ e => {
+                const marker = csc.getMarker(id, commentUserName);
+                csc.replaceMarkedTextHtml(ai.data.prediction, marker);
+                csc.setSelectedCommentId();
+            }
+            }>Take over</Button>
+
+            <CopyToClipboard copyText={ai.data.prediction}/>
 
             <AiRefinement
+                copyToClipboard
                 ai={ai}
                 user={user}
                 show={aiRefinementShow}

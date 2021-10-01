@@ -2,9 +2,11 @@ import {Button, FloatingLabel, Modal, Form, Container, Row, Col} from "react-boo
 import React, {useState} from "react";
 import './AiRefinement.css';
 import ContentEditable from "react-contenteditable";
+import CopyToClipboard from "./CopyToClipboard";
 
 export default function AiRefinement(props) {
 
+    const copyToClipboard = props.copyToClipboard;
     const ai = props.ai;
     const onHide = props.onHide;
     const handleTakeOver = props.handleTakeOver;
@@ -29,6 +31,7 @@ export default function AiRefinement(props) {
                     Summary by { user.name }
                 </Modal.Title>
             </Modal.Header>
+
             <Modal.Body>
                 <ContentEditable
                     className={"content-editable, form-control"}
@@ -37,8 +40,6 @@ export default function AiRefinement(props) {
                     onChange={e => setRefinedText(e.target.value)} // handle innerHTML change
                     tagName='div' // Use a custom HTML tag (uses a div by default)
                 />
-
-
 
                 {/*<FloatingLabel controlId="floatingTextarea2" label="Refine Summary">*/}
                 {/*    <Form.Control*/}
@@ -54,10 +55,12 @@ export default function AiRefinement(props) {
                 <Container>
                     <Row>
                         <Col xs={12} md={8}>
-                            <p className={"warning"}>By taking over this text, you are approving the discussion and overwriting the marked text.</p>
+                            { !copyToClipboard &&
+                            <p className={"warning"}>By taking over this text, you are approving the discussion and overwriting the marked text.</p> }
                         </Col>
                         <Col xs={6} md={4} className={"button-bar"}>
-                            <Button onClick={() => handleTakeOver(refinedText)} variant="secondary">Take over</Button>
+                            { !copyToClipboard && <Button onClick={() => handleTakeOver(refinedText)} variant="secondary">Take over</Button> }
+                            { copyToClipboard && <CopyToClipboard copyText={refinedText} /> }
                         </Col>
                     </Row>
                 </Container>
