@@ -1,5 +1,5 @@
 import React, {useContext, useState, forwardRef, useEffect} from 'react';
-import {Button, Card, Col, Dropdown, Form, Image, OverlayTrigger, Row, Tooltip} from "react-bootstrap";
+import {Button, ButtonGroup, Card, Col, Dropdown, Form, Image, OverlayTrigger, Row, Tooltip} from "react-bootstrap";
 import {CheckLg, ThreeDotsVertical} from 'react-bootstrap-icons';
 import {CommentsSidebarContext, CommentStatus, UserContext} from "../App";
 import CommentForm from "./CommentForm/CommentForm";
@@ -38,6 +38,13 @@ const CustomOptionToggle = React.forwardRef(({ children, onClick }, ref) => (
     </Button>
 ));
 
+export const InsertionStatus = Object.freeze({
+    "NONE": "NONE",
+    "INSERT_AFTER": "INSERT_AFTER",
+    "TAKE_OVER": "TAKE_OVER",
+    "COPY_TO_CLIPBOARD": "COPY_TO_CLIPBOARD"
+});
+
 
 export default Comment = forwardRef((props, ref) => {
 
@@ -45,6 +52,7 @@ export default Comment = forwardRef((props, ref) => {
     const usc = useContext(UserContext);
 
     const comment = props.comment;
+    const markerText = props.markerText;
     const selected = props.selected;
     const selectedCard = props.selectedCard;
     const cardTop = props.cardTop;
@@ -74,7 +82,9 @@ export default Comment = forwardRef((props, ref) => {
     const [top, setTop] = useState(position.top);
     const [isEdit, setIsEdit] = useState(false);
     const [editReply, setEditReply] = useState("");
-    const [aiRefinementShow, setAiRefinementShow] = React.useState(false);
+    const [aiRefinementShow, setAiRefinementShow] = useState(false);
+    const [refinedText, setRefinedText] = useState("");
+    const [insertionStatus, setInsertionStatus] = useState(InsertionStatus.NONE);
 
     useEffect(() => {
         setTop(cardTop);
@@ -98,10 +108,7 @@ export default Comment = forwardRef((props, ref) => {
         const html = reply.data.text;
         const ai = reply.data.ai; // used for ai skills
 
-        console.log("REPLY", reply);
-
         const handleTakeOver = (refinedTextHtml) => {
-            console.log("GONNA TAKE OVER", refinedTextHtml);
             setAiRefinementShow(false);
             const marker = csc.getMarker(id, commentUserName);
             csc.replaceMarkedTextHtml(refinedTextHtml, marker);
@@ -122,78 +129,113 @@ export default Comment = forwardRef((props, ref) => {
              return csc.createParagraphWithText(text);
         }
 
-/*        <Button variant="outline-primary" size="sm" onClick={e => {
-            setAiRefinementShow(true);
-            e.preventDefault();
-            e.stopPropagation();
-            e.nativeEvent.stopImmediatePropagation();
-        }}>Details &amp; Take over</Button>*/
-
-
         const renderTooltip = (props) => (
             <Tooltip id="button-tooltip" {...props}>
                 Copied to clipoard!
             </Tooltip>
         );
 
+        const aiSuggestion = refinedText !== "" ? refinedText : ai.data.prediction;
+
+        let buttonGroup = <ButtonGroup className="mb-2">
+            <Button onClick={ e => {
+                setAiRefinementShow(false);
+                const suggestionId = insertSuggestionAfterMarker(aiSuggestion);
+                csc.historyRecord(id, CommentStatus.SUGGESTION_INSERT_AFTER);
+                csc.addSuggestion(id, suggestionId, user);
+                setInsertionStatus(InsertionStatus.INSERT_AFTER)
+            }}>Insert after</Button>
+
+            <OverlayTrigger key={"bottom"}
+                            placement={"bottom"}
+                            overlay={
+                                <Tooltip>
+                                    By taking over the suggestion, you are resolving the comment and closing the discussion.
+                                    The highlighted text in the document will be overwritten.
+                                </Tooltip>
+                            }>
+                <Button onClick={ e => {
+                    setAiRefinementShow(false);
+                    const marker = csc.getMarker(id, commentUserName);
+                    csc.historyRecord(id, CommentStatus.SUGGESTION_TAKE_OVER);
+                    csc.replaceMarkedTextHtml(aiSuggestion, marker);
+                    csc.setSelectedCommentId();
+                }}>Take over</Button>
+            </OverlayTrigger>
+
+            <CopyToClipboard copyText={aiSuggestion} handleClick={() => {
+                csc.historyRecord(id, CommentStatus.SUGGESTION_COPY_TO_CLIPBOARD);
+            }}/>
+        </ButtonGroup>
+
+        if (insertionStatus === InsertionStatus.INSERT_AFTER) {
+            buttonGroup = <ButtonGroup className="mb-2">
+                <OverlayTrigger key={"bottom"}
+                                placement={"bottom"}
+                                overlay={
+                                    <Tooltip>
+                                        Mark resolved and hide discussion
+                                    </Tooltip>
+                                }>
+                    <Button onClick={ e => {
+                        csc.approveComment(id);
+                        e.stopPropagation();
+                        e.nativeEvent.stopImmediatePropagation();
+                    }}><CheckLg color="white"/> Approve</Button>
+                </OverlayTrigger>
+            </ButtonGroup>
+        }
+
+        const showDetails = insertionStatus !== InsertionStatus.INSERT_AFTER ? <div className={"ai-show-details"}>
+            <span onClick={e => {
+                setAiRefinementShow(true);
+                e.preventDefault();
+                e.stopPropagation();
+                e.nativeEvent.stopImmediatePropagation();
+            }}>... show details</span>
+        </div> : null;
+
+        let aiRefinementTitle;
+        let aiType;
+
+        switch (ai.skill) {
+            case "summarization":
+                aiType = "Summary";
+                aiRefinementTitle = "Summary by " + user.name;
+                break;
+            case "translation_de_en":
+                aiType = "Translation";
+                aiRefinementTitle = "Translation from German to English by " + user.name;
+                break;
+            case "generation":
+                aiType = "Extension";
+                aiRefinementTitle = "Extended version by " + user.name;
+                break;
+        }
+
         const aiField = ai && <div className={"ai"}>
-            <div className={"ai-text"}>
-                {ai.data.prediction}
+            <div className={"ai-content"}>
+                <div className={"ai-text"}>
+                    {ai.data.prediction}
+                </div>
+                { showDetails }
             </div>
-
-            {/*<OverlayTrigger*/}
-            {/*    trigger="click"*/}
-            {/*    placement="top"*/}
-            {/*    delay={{ show: 300, hide: 500 }}*/}
-            {/*    overlay={renderTooltip}*/}
-            {/*    onToggle={ e => {*/}
-            {/*        console.log("onToggle", e);*/}
-            {/*        console.log(this);*/}
-            {/*        console.log(e);*/}
-            {/*        console.log(props);*/}
-            {/*        return false;*/}
-            {/*    }}*/}
-            {/*>*/}
-            {/*    <Button variant="outline-primary" size="sm" onClick={e => {*/}
-            {/*        let promise = navigator.clipboard.writeText(ai.data.prediction);*/}
-            {/*        console.log(promise);*/}
-            {/*        e.preventDefault();*/}
-            {/*        e.stopPropagation();*/}
-            {/*        e.nativeEvent.stopImmediatePropagation();*/}
-            {/*    }}>Copy to clipboard</Button>*/}
-            {/*</OverlayTrigger>*/}
-
-            {/*<Button variant="outline-primary" size="sm" onClick={e => {*/}
-            {/*    setAiRefinementShow(true);*/}
-            {/*    e.preventDefault();*/}
-            {/*    e.stopPropagation();*/}
-            {/*    e.nativeEvent.stopImmediatePropagation();*/}
-            {/*}}>Show Details</Button>*/}
-
-            <Button onClick={ e => {
-                const suggestionId = insertSuggestionAfterMarker(ai.data.prediction);
-                console.log("SUGGESTION ID", suggestionId);
-                csc.addSuggestion(id, suggestionId);
-            }
-            }>Insert after</Button>
-
-            <Button onClick={ e => {
-                const marker = csc.getMarker(id, commentUserName);
-                csc.replaceMarkedTextHtml(ai.data.prediction, marker);
-                csc.setSelectedCommentId();
-            }
-            }>Take over</Button>
-
-            <CopyToClipboard copyText={ai.data.prediction}/>
-
+            { buttonGroup }
             <AiRefinement
-                copyToClipboard
+                hasTakeOverWarning={true}
+                isRefineActive={false}
+                type={aiType}
+                title={aiRefinementTitle}
                 ai={ai}
+                text={refinedText !== "" ? refinedText : ai.data.prediction}
                 user={user}
                 show={aiRefinementShow}
+                originalText={markerText}
+                handleRefinement={(refinedText) => {setRefinedText(refinedText)}}
                 onHide={() => setAiRefinementShow(false)}
-                handleTakeOver={handleTakeOver}
-            />
+            >
+                { buttonGroup }
+            </AiRefinement>
         </div>
 
         const editReplyForm = <CommentForm comment={reply}

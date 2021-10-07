@@ -19,6 +19,7 @@ export default class HighlightSelector extends Plugin {
     rects = {};
     caretRect = null;
     currentSelectedMarker = "";
+    reactCommentState = null;
 
     init() {
         const editor = this.editor;
@@ -84,8 +85,9 @@ export default class HighlightSelector extends Plugin {
         } );
 
         editor.model.on ('applyOperation', (eventInfo, args) => {
-            console.log("APPLY OP", eventInfo, args);
-        })
+            //console.log("APPLY OP", eventInfo, args);
+        });
+
     }
 
     markerHighlightView(data, conversionApi) {
@@ -128,9 +130,8 @@ export default class HighlightSelector extends Plugin {
                 if (onChangeEventCallback) {
                     marker.on('change:range', (eventInfo, oldRange, data) => {
                         console.log(annotationType, id, "user: " + userId);
-                        console.log("MARKER EVENT!");
                         console.log("INSIGHTS", eventInfo, oldRange, data);
-                        onChangeEventCallback(data.deletionPosition, annotationType, id, userId);
+                        onChangeEventCallback(data.deletionPosition, annotationType, id, userId, this.reactCommentState);
                     });
                 }
             }
@@ -454,4 +455,7 @@ export default class HighlightSelector extends Plugin {
         return currentParent;
     }
 
+    setReactCommentState(reactCommentState) {
+        this.reactCommentState = reactCommentState;
+    }
 }

@@ -21,7 +21,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import "./ckeditor/highlight-selector/HighlightSelector.css";
 import CommentBalloon from "./collabo/CommentBalloon";
 import Topbar from "./collabo/Topbar";
-import {detectIntent, generate, Intent, parseMessage, summarize, translateDeEn} from "./intelligence/Conversation";
+import {detectIntent, generate, Intent, summarize, translateDeEn} from "./intelligence/Conversation";
 import {Emulator, Task, TaskTrigger, TimeConfig} from "./intelligence/Emulator";
 
 
@@ -80,7 +80,10 @@ export const CommentStatus = Object.freeze({
     "POSTED": "POSTED",
     "CANCELLED": "CANCELLED",
     "APPROVED": "APPROVED",
-    "DELETED": "DELETED"
+    "DELETED": "DELETED",
+    "SUGGESTION_TAKE_OVER": "SUGGESTION_TAKE_OVER",
+    "SUGGESTION_INSERT_AFTER": "SUGGESTION_INSERT_AFTER",
+    "SUGGESTION_COPY_TO_CLIPBOARD": "SUGGESTION_COPY_TO_CLIPBOARD"
 });
 
 export const CommentAction = Object.freeze({
@@ -100,6 +103,7 @@ const commentReducer = (state, action) => {
     const reply = action.payload.reply || null;
     const replyId = action.payload.replyId || null;
     const text = action.payload.text || null;
+    const commentStatus = action.payload.commentStatus || null;
 
     const comments = state.comments;
     const replies = state.comments.replies;
@@ -177,6 +181,18 @@ const commentReducer = (state, action) => {
                 },
                 commentRects: commentRects || state.commentRects
             };
+        case 'historyRecord':
+            tempComment = { ...comments[id] };
+            tempComment.state = commentStatus;
+            tempComment.history = [...tempComment.history, {
+                state: commentStatus,
+                time: Date.now()
+            }];
+            return { ...state,
+                comments: {
+                    ...state.comments, [tempComment.id]: tempComment
+                }
+            };
         case 'typingReply':
             tempComment = { ...comments[id] };
             tempComment.typing = [...tempComment.typing, user];
@@ -244,8 +260,11 @@ const commentReducer = (state, action) => {
             }
         case 'addSuggestion':
             tempComment = { ...comments[id] };
-            tempComment.suggestionId = suggestionId;
-            console.log("addSuggestion reducer", suggestionId);
+            tempComment.suggestion = {
+                id: suggestionId,
+                user: user
+            }
+            console.log("addSuggestion reducer", suggestionId, user);
             return { ...state,
                 comments: {...comments, [id]: tempComment}
             };
@@ -334,7 +353,6 @@ function App(){
         }
     }
 
-
     const getPlugin = () => {
         if (!editor || highlightSelector) {
             return;
@@ -358,7 +376,7 @@ function App(){
             replies: [],
             //deletedReplies: [],
             typing: [],
-            suggestionId: null,
+            suggestion: null,
             history: [
                 {
                     state: CommentStatus.NEW,
@@ -486,7 +504,9 @@ function App(){
         const comment = commentState.comments[id];
         const user = comment.data.user.name;
 
+        removeSuggestion(comment);
         highlightSelector.remove("comment", id, user);
+
         const commentRects = getCommentRects();
         commentDispatch({
             type: 'approveComment',
@@ -504,13 +524,25 @@ function App(){
         const comment = commentState.comments[id];
         const user = comment.data.user.name;
 
+        removeSuggestion(comment);
         highlightSelector.remove("comment", id, user);
+
         const commentRects = getCommentRects();
         commentDispatch({
             type: 'deleteComment',
             payload: {
                 id: id,
                 commentRects: commentRects
+            }
+        });
+    }
+
+    const historyRecord = (id, commentStatus) => {
+        commentDispatch({
+            type: 'historyRecord',
+            payload: {
+                id: id,
+                commentStatus: commentStatus
             }
         });
     }
@@ -602,8 +634,12 @@ function App(){
 
     }
 
-    const onMarkerChange = (deletionPosition, annotationType, id, user) => {
+    // reactCommentState is set via useEffect on highlightSelector to make it available
+    // in callbacks from inside highlightSelector
+    const onMarkerChange = (deletionPosition, annotationType, id, user, reactCommentState) => {
         if (deletionPosition) {
+            const comment = reactCommentState && reactCommentState.comments[id];
+            removeSuggestion(comment);
             highlightSelector.remove(annotationType, id, user);
             updateCommentRects();
         }
@@ -637,14 +673,22 @@ function App(){
         });
     }
 
-    const addSuggestion = (commentId, suggestionId) => {
+    const addSuggestion = (commentId, suggestionId, user) => {
         commentDispatch({
             type: 'addSuggestion',
             payload: {
                 commentId: commentId,
-                suggestionId: suggestionId
+                suggestionId: suggestionId,
+                user: user
             }
         });
+    }
+
+    const removeSuggestion = (comment) => {
+        console.log("REMOVE SUGGESTION", commentState, comment);
+        if (comment && comment.suggestion) {
+            highlightSelector.remove("suggestion", comment.suggestion.id, comment.suggestion.user.name)
+        }
     }
 
     const setUserOnline = (userId, online) => {
@@ -814,6 +858,12 @@ function App(){
         }
     }, [caretRect]);
 
+    useEffect(() => {
+        if (highlightSelector) {
+            highlightSelector.setReactCommentState(commentState);
+        }
+    }, [commentState]);
+
     return (
         <UserContext.Provider value={{
             userState: userState
@@ -861,6 +911,7 @@ function App(){
                                         editComment: editComment,
                                         approveComment: approveComment,
                                         deleteComment: deleteComment,
+                                        historyRecord: historyRecord,
                                         postReply: postReply,
                                         editReply: editReply,
                                         deleteReply: deleteReply,

@@ -81,6 +81,7 @@ function Sidebar(props) {
     const sortedCommentIdsBeforeSelected = sortedCommentIds.splice(0, selectedCommentIndex);
     const max = sortedCommentIdsBeforeSelected.length - 1;
 
+
     // if selected comment, take commentIds before selected card and iterate backwards
     if (isCommentSelected && commentState.commentRects[selectedComment] && commentState.commentRects[sortedCommentIdsBeforeSelected[max]]) {
         priorCommentTop = 0;
@@ -139,6 +140,7 @@ function Sidebar(props) {
                 ref={onRefChangeComment}
                 key={id}
                 comment={comments[id]}
+                markerText={csc.getMarkedText(csc.getMarker(id, comments[id].data.user.name))}
                 selected={selectedComment === id}
                 selectedCard={selectedComment}
                 cardTop={cardTop}
@@ -185,6 +187,7 @@ function Sidebar(props) {
             ref={onRefChangeComment}
             key={id}
             comment={comments[id]}
+            markerText={csc.getMarkedText(csc.getMarker(id, comments[id].data.user.name))}
             selected={selectedComment === id}
             selectedCard={selectedComment}
             cardTop={cardTop}

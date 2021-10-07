@@ -50,6 +50,7 @@
 
 .comment-card .comment-date {
     font-size: 0.85rem;
+    font-weight: 400;
 }
 
 .comment-card.selected {
@@ -111,26 +112,50 @@
     position: relative;
 }
 
+.ai-content {
+    position: relative;
+}
+
 .ai-text {
+    position: relative;
     margin-top: 0.25rem;
-    padding-top: 0.25rem;
-    border-top: 1px solid #ccc;
+    padding: 0.25rem 0.5rem 0.5rem 0.5rem;
     font-family: "serif";
     font-size: 0.9rem;
 
-    height: 8.5rem;
+    max-height: 9.2rem;
     overflow: hidden;
+
+    border-left: 3px solid #78acff;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+    line-height: 1.25rem;
+
 }
 
 .ai-text:after {
     content: "";
     text-align: right;
     position: absolute;
-    bottom: 2rem;
+    bottom: 0;
     right: 0;
-    width: 70%;
-    height: 1.2em;
+    width: 75%;
+    height: 1.5em;
     background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1) 50%);
+}
+
+.ai-show-details {
+    cursor: pointer;
+    position: absolute;
+    bottom: 0.2rem;
+    right: 0.2rem;
+    font-size: 0.85rem;
+
+    color: #06357a;
+}
+
+.ai-show-details:hover {
+    text-decoration: underline;
 }
 
 .typing-names {

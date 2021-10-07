@@ -6,18 +6,22 @@ import {Files} from 'react-bootstrap-icons';
 function CopyToClipboard(props) {
 
     const copyText = props.copyText;
+    const handleClick = props.handleClick;
 
     const [show, setShow] = useState(false);
     const target = useRef(null);
 
     return (
         <>
-            <Button variant="outline-primary" size="sm" ref={target} onClick={e => {
+            <Button variant="primary" size="sm" ref={target} onClick={e => {
                 let promise = navigator.clipboard.writeText(copyText);
                 promise.then(value => {
                     setShow(true);
                     setTimeout(() => setShow(false), 1200);
                 });
+                if (handleClick) {
+                    handleClick();
+                };
                 e.preventDefault();
                 e.stopPropagation();
                 e.nativeEvent.stopImmediatePropagation();
