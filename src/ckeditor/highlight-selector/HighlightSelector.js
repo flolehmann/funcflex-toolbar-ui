@@ -21,6 +21,14 @@ export default class HighlightSelector extends Plugin {
     currentSelectedMarker = "";
     reactCommentState = null;
 
+    // undo and redo callback workaround
+    // text
+    undoCallback = null;
+    redoCallback = null;
+
+    text = "";
+    previousText = "";
+
     init() {
         const editor = this.editor;
 
@@ -58,6 +66,11 @@ export default class HighlightSelector extends Plugin {
             return removeCommentView;
         } );
 
+        editor.model.document.on('change', () => {
+            this.previousText = this.text;
+            this.text = editor.getData();
+        } );
+
         editor.conversion.for('editingDowncast').markerToHighlight({
             model: "annotation",
             view: this.markerHighlightView.bind(this)
@@ -71,27 +84,28 @@ export default class HighlightSelector extends Plugin {
             view: 'annotation'
         });
 
-        const undoCommand = editor.commands.get( 'undo' );
-        const redoCommand = editor.commands.get( 'redo' );
+        const undoCommand = editor.commands.get('undo');
+        const redoCommand = editor.commands.get('redo');
 
-        undoCommand.on( 'execute', eventInfo => {
-            console.log( 'Undo has been fired.', undoCommand, eventInfo);
-            console.log(eventInfo.return);
-        } );
+        undoCommand.on('execute', eventInfo => {
+            if (this.undoCallback) {
+                this.undoCallback(this.text, this.previousText);
+            }
+        });
 
-        redoCommand.on( 'execute', eventInfo => {
-            console.log( 'Redo has been fired.' );
-            console.log(eventInfo);
-        } );
+        redoCommand.on('execute', eventInfo => {
+            if (this.redoCallback) {
+                this.redoCallback(this.text, this.previousText);
+            }
+        });
 
         editor.model.on ('applyOperation', (eventInfo, args) => {
             //console.log("APPLY OP", eventInfo, args);
         });
-
     }
 
     markerHighlightView(data, conversionApi) {
-        console.log("markerHighlightview", data);
+        //console.log("markerHighlightview", data);
         const [ , annotationType, annotationId, userId ] = data.markerName.split(':');
         const annotationAttributeId = this.createAnnotationAttribute(annotationType);
         const attributes = {}
@@ -103,8 +117,8 @@ export default class HighlightSelector extends Plugin {
             attributes[userAttributeId] = userId
         }
 
-        console.log("MARKER TO HIGHLIGHT");
-        console.log(this.currentSelectedMarker, data.markerName);
+        //console.log("MARKER TO HIGHLIGHT");
+        //console.log(this.currentSelectedMarker, data.markerName);
         let classes = ['annotation', annotationType, annotationType + "-" + annotationId]
         if (userId) {
             classes.push(annotationType + "-by-" + userId)
@@ -190,13 +204,13 @@ export default class HighlightSelector extends Plugin {
     }
 
     getMarker(annotationType, annotationId, userId = null) {
-        console.log("Get Annotation:", annotationType, annotationId);
+        //console.log("Get Annotation:", annotationType, annotationId);
         const editor = this.editor;
         const annotationIdentifier = this.createAnnotationIdentifier(annotationType, annotationId, userId);
         const markers = editor.model.markers;
-        console.log("MARKERS", markers);
+       // console.log("MARKERS", markers);
         const marker = markers.get(annotationIdentifier);
-        console.log("MARKER", marker);
+        //console.log("MARKER", marker);
         return marker;
     }
 
@@ -204,7 +218,7 @@ export default class HighlightSelector extends Plugin {
         const result = [];
         const range = marker.getRange();
         for ( const item of range.getItems() ) {
-            console.log("ITEM", item);
+            //console.log("ITEM", item);
             if (item.is("textProxy")) {
                 result.push(item.data);
             }
@@ -230,7 +244,7 @@ export default class HighlightSelector extends Plugin {
     }
 
     insertAfterMarkedText (text, marker, insertElement = false) {
-        console.log("insertAfterMarkedText");
+        console.log("insertAfterMarkedText", text, marker);
         let range;
         const editor = this.editor;
         editor.model.change( writer => {
@@ -306,9 +320,8 @@ export default class HighlightSelector extends Plugin {
     setCaretDetector(callback) {
         const editor = this.editor;
 
-        editor.editing.view.document.on('selectionChange', data => {
-            console.log("selectionChange");
-            console.log(data);
+        editor.editing.view.document.on('selectionChange', (eventInfo, data) => {
+            //console.log("selectionChange", data);
             const selection = editor.model.document.selection;
             const range = Array.from(selection.getFirstRange());
 
@@ -319,6 +332,19 @@ export default class HighlightSelector extends Plugin {
             }
 
             callback(this.caretRect);
+        });
+    }
+
+    setShowBalloon(callback) {
+        const editor = this.editor;
+        editor.editing.view.document.on('selectionChange', (eventInfo, data) => {
+            if (data.newSelection.getFirstPosition().compareWith(data.newSelection.getLastPosition()) === "before") {
+                if (data.newSelection.getFirstPosition().offset > 0 || data.newSelection.getLastPosition().offset > 0) {
+                    callback(true);
+                } else {
+                    callback(false);
+                }
+            }
         });
     }
 
@@ -344,6 +370,11 @@ export default class HighlightSelector extends Plugin {
         editor.editing.view.on( 'change', () => {
             callback();
         } );
+    }
+
+    setOnUndoRedo(undoCallback, redoCallback) {
+        this.undoCallback = undoCallback;
+        this.redoCallback = redoCallback;
     }
 
     setOnUpdateMarkers(callback) {
@@ -405,8 +436,6 @@ export default class HighlightSelector extends Plugin {
 
     setCurrentSelectedAnnotation(annotationType, id, user, isSelected = false) {
         const annotationIdentifier = this.createAnnotationIdentifier(annotationType, id, user);
-
-        console.log("OHO", id, isSelected);
 
         // reset old marker
         if (isSelected || (this.currentSelectedMarker !== "" &&

@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useContext, useEffect, useRef, useState} from 'react';
 import ContentEditable from 'react-contenteditable'
 
 import './CommentInput.css';
@@ -29,6 +29,7 @@ function CommentInput(props) {
     const onFocusHandler = props.onFocusHandler;
     const inputHtml = props.inputHtml || "";
     const isTyping = props.isTyping || false;
+    const keyDownCallback = props.keyDownCallback;
 
     const contentEditable = useRef();
     const [html, setHtml] =  useState("<br>");
@@ -219,6 +220,11 @@ function CommentInput(props) {
     };
 
     const handleKeyDown = useRefCallback(e => {
+
+        if (keyDownCallback) {
+            keyDownCallback(e);
+        }
+
         // check for @ input and get caret pos
         if (e.key === "@") {
             setLastKeyPressed("@");

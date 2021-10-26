@@ -72,6 +72,7 @@ export const summarize = (text) => {
 }
 
 export const translateDeEn = (text) => {
+    console.log("CALLED TRANSLATE_DE_EN");
     return fetch(APIS.opus_mt.url, {
         method: 'POST',
         mode: "cors",

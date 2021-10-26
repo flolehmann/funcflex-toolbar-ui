@@ -9,6 +9,7 @@ export class Emulator {
     }
 
     addTask(task) {
+        console.log("ADD TASK TO EMU", task);
         this.taskList[nanoid()] = task;
     }
 
@@ -16,42 +17,41 @@ export class Emulator {
         delete this.taskList[id];
     }
 
+    // Emulator iteratively executes tasks with an interval of 2000 milliseconds
     async start() {
         this.running = true;
         await new Promise(resolve => {
-            const interval = setInterval(async () => {
+            const interval = setInterval( async () => {
                 const taskList = this.getActiveTaskList();
+                this.setTasksRunning(taskList);
                 for (const [index, task] of taskList) {
                     switch (task.trigger) {
                         case TaskTrigger.INSTANT:
-                            task.setRunning();
                             task.typing();
                             try {
-                                const methodResult = await task.method();
+                                task.method();
                                 task.setDone();
-                            } catch(err) {
+                            } catch (err) {
                                 task.setFailed();
                             }
                             break;
                         case TaskTrigger.TIME:
-                            task.setRunning();
                             const typingDelayMin = task.timeConfig.typingDelayMin;
                             const typingDelayMax = task.timeConfig.typingDelayMax;
-                            await this.delay(this.timeFromRandomInterval(typingDelayMin, typingDelayMax), task.typing);
-                            try {
-                                let time1 = Date.now();
-                                const executionDelayMin = task.timeConfig.executionDelayMin;
-                                const executionDelayMax = task.timeConfig.executionDelayMax;
-                                const methodResult = await this.delay(this.timeFromRandomInterval(executionDelayMin, executionDelayMax), task.method);
-                                task.setDone();
-                            } catch(err) {
-                                task.setFailed();
-                            }
+                            this.delay(this.timeFromRandomInterval(typingDelayMin, typingDelayMax), task.typing).then(result => {
+                                try {
+                                    const executionDelayMin = task.timeConfig.executionDelayMin;
+                                    const executionDelayMax = task.timeConfig.executionDelayMax;
+                                    this.delay(this.timeFromRandomInterval(executionDelayMin, executionDelayMax), task.method);
+                                    task.setDone();
+                                } catch (err) {
+                                    task.setFailed();
+                                }
+                            });
                             break;
                         case TaskTrigger.USER_ACTIVITY:
                             break;
                     }
-
                 }
 
                 if (!this.running) {
@@ -72,6 +72,12 @@ export class Emulator {
         return Object.entries(this.taskList).filter(([id, task]) => {
             return task.state === TaskState.ADDED;
         });
+    }
+
+    setTasksRunning(taskList) {
+        for (const [index, task] of taskList) {
+            task.setRunning();
+        }
     }
 
     delay(ms, callback) {
@@ -161,6 +167,13 @@ export class Task {
 
     setDone() {
         this.state = TaskState.DONE;
+    }
+
+    isRunning() {
+        if (this.state === TaskState.RUNNING) {
+            return true;
+        }
+        return false;
     }
 
 }

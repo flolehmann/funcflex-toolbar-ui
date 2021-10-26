@@ -70,6 +70,7 @@ html, body {
 
 .ck.ck-toolbar {
   background: #fff;
+  margin-left: 1rem;
 }
 
 /* Adjust the look of the toolbar inside the container. */

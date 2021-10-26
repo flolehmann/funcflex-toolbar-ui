@@ -13,7 +13,7 @@ function CopyToClipboard(props) {
 
     return (
         <>
-            <Button variant="primary" size="sm" ref={target} onClick={e => {
+            <Button variant="primary" ref={target} onClick={e => {
                 let promise = navigator.clipboard.writeText(copyText);
                 promise.then(value => {
                     setShow(true);

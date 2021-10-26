@@ -3,14 +3,18 @@ import React, {useContext, useEffect, useState} from 'react';
 import '../CommentBallon.css';
 import {Button, Col, Form, Row} from "react-bootstrap";
 import CommentInput from "./CommentInput";
-import {CommentsSidebarContext} from "../../App";
+import {CommentsSidebarContext, LoggerContext} from "../../App";
 
 import './CommentForm.css';
+import {LoggerEvents} from "../../logger/logger";
 
 
 function CommentForm(props) {
 
     const csc = useContext(CommentsSidebarContext);
+
+    const lc = useContext(LoggerContext);
+    const logger = lc.logger;
 
     const comment = props.comment;
     const top = props.top;
@@ -53,6 +57,11 @@ function CommentForm(props) {
         }
     }, [inputText])
 
+
+    const keyDownLogger = (event) => {
+        logger(LoggerEvents.KEY_DOWN, event.nativeEvent, {"commentId": id});
+    }
+
     return <Form className={className}>
         <Form.Group className={"form-group"} controlId="formComment" onClick={e => {
             e.stopPropagation();
@@ -66,6 +75,9 @@ function CommentForm(props) {
                           isTyping={isTyping}
                           onFocusHandler={e => {
                               setIsFocused(true);
+                              if (isReply && !isEdit) {
+                                  logger(LoggerEvents.REPLY_START, {"commentId": id});
+                              }
                           }}
                           inputHandler={(text) => {
                                 changedHeightHandler({
@@ -74,6 +86,7 @@ function CommentForm(props) {
                                 });
                                 setInputText(text);
                             }}
+                          keyDownCallback={keyDownLogger}
             />
         </Form.Group>
         {(isFocused || isEdit || text === "") && <Row>
@@ -111,19 +124,22 @@ function CommentForm(props) {
                             if (selectedCard === id) {
                                 selectHandler();
                             }
-                            console.log("THE ID", id);
                             csc.cancelComment(id);
                             setIsFocused(false);
                             setResetTrigger(inputText);
                         } else {
                             setIsFocused(false);
                             setResetTrigger(inputText);
+                            logger(LoggerEvents.REPLY_CANCEL, {"commentId": id});
                         }
                     } else {
                         if (isReply) {
                             editReplyHandler("");
+                            // if the form is used for a reply, the variables commentId and id hold the replyId
+                            logger(LoggerEvents.REPLY_EDIT_CANCEL, {"commentId": commentId, "replyId": id});
                         } else {
                             isEditHandler(false);
+                            logger(LoggerEvents.COMMENT_EDIT_CANCEL, {"commentId": id});
                         }
                         setIsFocused(false);
                         setResetTrigger(inputText);

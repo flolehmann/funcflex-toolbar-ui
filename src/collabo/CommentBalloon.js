@@ -24,7 +24,7 @@ function CommentBalloon(props) {
              style={{
                  display: isVisible ? "flex" : "none",
                  position: "absolute",
-                 zIndex: 2000,
+                 zIndex: 1000,
                  width: "30px",
                  height: balloonHeight + "px",
                  top: (top - yOffsetBalloon - props.ckEditorOffsetTop + scrollYOffset) + "px",

@@ -38,3 +38,11 @@
 
     padding-right: var(--bs-gutter-x,.75rem);
 }
+
+.modal-trigger {
+    cursor: pointer;
+}
+
+.modal-trigger.bg.primary:hover {
+    background-color: #0b5ed7;
+}

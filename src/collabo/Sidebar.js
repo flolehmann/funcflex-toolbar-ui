@@ -30,7 +30,7 @@ function Sidebar(props) {
         .reduce((r, [k, v]) => ({ ...r, [k]: v }), {});
         setSortedCommentRects(sorted);
         setComments({ ...commentState.comments });
-    }, [ commentState.commentRects, commentRectsLength, commentState.comments ]);
+    }, [commentState.commentRects, commentRectsLength, commentState.comments]);
 
     useEffect(() => {
         // remove nodes of deleted comments
@@ -136,24 +136,27 @@ function Sidebar(props) {
                 }
             }
 
-            const commentCard = <Comment
-                ref={onRefChangeComment}
-                key={id}
-                comment={comments[id]}
-                markerText={csc.getMarkedText(csc.getMarker(id, comments[id].data.user.name))}
-                selected={selectedComment === id}
-                selectedCard={selectedComment}
-                cardTop={cardTop}
-                position={commentState.commentRects[id]}
-                selectHandler={selectCard}
-                changedHeightHandler={(comment) => {
-                    setCommentChangedHeight(comment);
-                }}
-            />
-
             priorCommentTop = cardTop;
 
-            priorSelectedCommentCards.push(commentCard);
+            const marker = csc.getMarker(id, comments[id].data.user.name);
+
+            if (marker) {
+                const commentCard = <Comment
+                    ref={onRefChangeComment}
+                    key={id}
+                    comment={comments[id]}
+                    markerText={csc.getMarkedText(marker)}
+                    selected={selectedComment === id}
+                    selectedCard={selectedComment}
+                    cardTop={cardTop}
+                    position={commentState.commentRects[id]}
+                    selectHandler={selectCard}
+                    changedHeightHandler={(comment) => {
+                        setCommentChangedHeight(comment);
+                    }}
+                />
+                priorSelectedCommentCards.push(commentCard);
+            }
         }
     }
 
@@ -171,7 +174,6 @@ function Sidebar(props) {
         if (i > 0 && sortedCommentIds[i - 1] in commentNodes) {
             // ensure to take the recent top position
             const priorCommentPosition = commentNodes[sortedCommentIds[i - 1]];
-
             if (ownRect.top + scrollYOffset - sidebarOffsetTop < (priorCommentTop + priorCommentPosition.offsetHeight)) {
                 cardTop = priorCommentTop + priorCommentPosition.offsetHeight + 10;
             } else {
@@ -183,24 +185,27 @@ function Sidebar(props) {
             cardTop += scrollYOffset;
         }
 
-        const commentCard = <Comment
-            ref={onRefChangeComment}
-            key={id}
-            comment={comments[id]}
-            markerText={csc.getMarkedText(csc.getMarker(id, comments[id].data.user.name))}
-            selected={selectedComment === id}
-            selectedCard={selectedComment}
-            cardTop={cardTop}
-            position={ownRect}
-            selectHandler={selectCard}
-            changedHeightHandler={(comment) => {
-                setCommentChangedHeight(comment);
-            }}
-        />
-
         priorCommentTop = cardTop;
 
-        commentCards.push(commentCard);
+        const marker = csc.getMarker(id, comments[id].data.user.name);
+
+        if (marker) {
+            const commentCard = <Comment
+                ref={onRefChangeComment}
+                key={id}
+                comment={comments[id]}
+                markerText={csc.getMarkedText(marker)}
+                selected={selectedComment === id}
+                selectedCard={selectedComment}
+                cardTop={cardTop}
+                position={ownRect}
+                selectHandler={selectCard}
+                changedHeightHandler={(comment) => {
+                    setCommentChangedHeight(comment);
+                }}
+            />
+            commentCards.push(commentCard);
+        }
     }
 
     if (isCommentSelected) {

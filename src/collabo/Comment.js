@@ -1,11 +1,12 @@
 import React, {useContext, useState, forwardRef, useEffect} from 'react';
 import {Button, ButtonGroup, Card, Col, Dropdown, Form, Image, OverlayTrigger, Row, Tooltip} from "react-bootstrap";
 import {CheckLg, ThreeDotsVertical} from 'react-bootstrap-icons';
-import {CommentsSidebarContext, CommentStatus, UserContext} from "../App";
+import {CommentsSidebarContext, CommentStatus, LoggerContext, UserContext} from "../App";
 import CommentForm from "./CommentForm/CommentForm";
 import './Comment.css';
 import AiRefinement from "./AiRefinement";
 import CopyToClipboard from "./CopyToClipboard";
+import {LoggerEvents} from "../logger/logger";
 
 const dateHelper = (date) => {
     const formatNumber = (number) => {
@@ -51,6 +52,9 @@ export default Comment = forwardRef((props, ref) => {
     const csc = useContext(CommentsSidebarContext);
     const usc = useContext(UserContext);
 
+    const lc = useContext(LoggerContext);
+    const logger = lc.logger;
+
     const comment = props.comment;
     const markerText = props.markerText;
     const selected = props.selected;
@@ -90,6 +94,11 @@ export default Comment = forwardRef((props, ref) => {
         setTop(cardTop);
     }, [cardTop]);
 
+    useEffect(() => {
+        // re-renders sidebar, if replies change, or someone is typing
+        changedHeightHandler({top: top, id:id});
+    }, [comment.replies, comment.typing]);
+
     if (position) {
         style = { position: "absolute", top: top + "px" };
         if (selected) {
@@ -122,6 +131,7 @@ export default Comment = forwardRef((props, ref) => {
         }
 
         const addSuggestionMarkerAtRange = (range, user) => {
+            console.log("RANGE", range, "USER", user)
             return csc.addSuggestionMarkerAtRange(range, user);
         }
 
@@ -135,15 +145,21 @@ export default Comment = forwardRef((props, ref) => {
             </Tooltip>
         );
 
-        const aiSuggestion = refinedText !== "" ? refinedText : ai.data.prediction;
+        const aiSuggestionIsRefined = refinedText !== "";
+        const aiSuggestion = aiSuggestionIsRefined ? refinedText : ai && ai.data.prediction;
 
-        let buttonGroup = <ButtonGroup className="mb-2">
+        let buttonGroup = <div className="button-group">
             <Button onClick={ e => {
                 setAiRefinementShow(false);
                 const suggestionId = insertSuggestionAfterMarker(aiSuggestion);
                 csc.historyRecord(id, CommentStatus.SUGGESTION_INSERT_AFTER);
                 csc.addSuggestion(id, suggestionId, user);
-                setInsertionStatus(InsertionStatus.INSERT_AFTER)
+                setInsertionStatus(InsertionStatus.INSERT_AFTER);
+                const marker = csc.getMarker(id, commentUserName);
+                const markedText = csc.getMarkedText(marker);
+                logger(LoggerEvents.SUGGESTION_INSERT_AFTER,
+                    {"text": aiSuggestion, "markedText": markedText},
+                    {"commentId": id, "refinedByUser": aiSuggestionIsRefined, "suggestionId": suggestionId});
             }}>Insert after</Button>
 
             <OverlayTrigger key={"bottom"}
@@ -157,19 +173,28 @@ export default Comment = forwardRef((props, ref) => {
                 <Button onClick={ e => {
                     setAiRefinementShow(false);
                     const marker = csc.getMarker(id, commentUserName);
+                    const markedText = csc.getMarkedText(marker);
                     csc.historyRecord(id, CommentStatus.SUGGESTION_TAKE_OVER);
                     csc.replaceMarkedTextHtml(aiSuggestion, marker);
                     csc.setSelectedCommentId();
+                    logger(LoggerEvents.SUGGESTION_TAKE_OVER,
+                        {"text": aiSuggestion, "markedText": markedText},
+                        {"commentId": id, "refinedByUser": aiSuggestionIsRefined, "suggestionId": suggestionId});
                 }}>Take over</Button>
             </OverlayTrigger>
 
             <CopyToClipboard copyText={aiSuggestion} handleClick={() => {
+                const marker = csc.getMarker(id, commentUserName);
+                const markedText = csc.getMarkedText(marker);
+                logger(LoggerEvents.SUGGESTION_COPY_TO_CLIPBOARD,
+                    {"text": aiSuggestion, "markedText": markedText},
+                    {"commentId": id, "refinedByUser": aiSuggestionIsRefined, "suggestionId": suggestionId});
                 csc.historyRecord(id, CommentStatus.SUGGESTION_COPY_TO_CLIPBOARD);
             }}/>
-        </ButtonGroup>
+        </div>
 
         if (insertionStatus === InsertionStatus.INSERT_AFTER) {
-            buttonGroup = <ButtonGroup className="mb-2">
+            buttonGroup = <div className="button-group">
                 <OverlayTrigger key={"bottom"}
                                 placement={"bottom"}
                                 overlay={
@@ -179,11 +204,12 @@ export default Comment = forwardRef((props, ref) => {
                                 }>
                     <Button onClick={ e => {
                         csc.approveComment(id);
+                        logger(LoggerEvents.COMMENT_APPROVE, {"commentId": id, "type": "afterInsertAfter"});
                         e.stopPropagation();
                         e.nativeEvent.stopImmediatePropagation();
                     }}><CheckLg color="white"/> Approve</Button>
                 </OverlayTrigger>
-            </ButtonGroup>
+            </div>
         }
 
         const showDetails = insertionStatus !== InsertionStatus.INSERT_AFTER ? <div className={"ai-show-details"}>
@@ -198,19 +224,21 @@ export default Comment = forwardRef((props, ref) => {
         let aiRefinementTitle;
         let aiType;
 
-        switch (ai.skill) {
-            case "summarization":
-                aiType = "Summary";
-                aiRefinementTitle = "Summary by " + user.name;
-                break;
-            case "translation_de_en":
-                aiType = "Translation";
-                aiRefinementTitle = "Translation from German to English by " + user.name;
-                break;
-            case "generation":
-                aiType = "Extension";
-                aiRefinementTitle = "Extended version by " + user.name;
-                break;
+        if (ai && ai.skill) {
+            switch (ai.skill) {
+                case "summarization":
+                    aiType = "Summary";
+                    aiRefinementTitle = "Summary by " + user.name;
+                    break;
+                case "translation_de_en":
+                    aiType = "Translation";
+                    aiRefinementTitle = "Translation from German to English by " + user.name;
+                    break;
+                case "generation":
+                    aiType = "Extension";
+                    aiRefinementTitle = "Extended version by " + user.name;
+                    break;
+            }
         }
 
         const aiField = ai && <div className={"ai"}>
@@ -257,6 +285,7 @@ export default Comment = forwardRef((props, ref) => {
                 <Dropdown.Menu size="sm" title="">
                     <Dropdown.Item onClick={e => {
                             setEditReply(reply.id);
+                            logger(LoggerEvents.REPLY_EDIT_TOGGLE, {"commentId": id, "replyId": reply.id});
                         }}>Edit</Dropdown.Item>
                     <Dropdown.Item onClick={e => {
                         csc.deleteReply(id, reply.id);
@@ -286,7 +315,6 @@ export default Comment = forwardRef((props, ref) => {
             { aiField }
         </div>
     });
-
 
     const firstComment = !text ? null : <Card.Text dangerouslySetInnerHTML={{__html: text}}></Card.Text>;
 
@@ -326,6 +354,7 @@ export default Comment = forwardRef((props, ref) => {
         <Dropdown.Menu size="sm" title="">
             <Dropdown.Item onClick={e => {
                 setIsEdit(true);
+                logger(LoggerEvents.COMMENT_EDIT_TOGGLE, {"commentId": id});
                 e.stopPropagation();
                 e.nativeEvent.stopImmediatePropagation();
             }}>Edit</Dropdown.Item>
@@ -348,6 +377,7 @@ export default Comment = forwardRef((props, ref) => {
                                           }>
         <Button variant="light" onClick={e => {
             csc.approveComment(id);
+            logger(LoggerEvents.COMMENT_APPROVE, {"commentId": id, "type": "primary"});
             e.stopPropagation();
             e.nativeEvent.stopImmediatePropagation();
         }}><CheckLg color="royalBlue"/></Button>
