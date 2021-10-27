@@ -23,7 +23,7 @@ services:
       - ./src/:/ui/src/
   # serves the frontend
   collab-writing-with-ai-nginx:
-    container_name: collab-writing-with-ai-frontend
+    container_name: collab-writing-with-ai-nginx
     image: nginx
     ports:
       - 8001:80
