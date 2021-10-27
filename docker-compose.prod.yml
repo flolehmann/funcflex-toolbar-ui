@@ -18,9 +18,11 @@ services:
     networks:
       - inside
     volumes:
-      - ./build/:/ui/build/
+      - ./build/:/ui/build
+      - ./config:/ui/config
       - ./public:/ui/public
-      - ./src/:/ui/src/
+      - ./scripts/:/ui/scripts
+      - ./src/:/ui/src
   # serves the frontend
   collab-writing-with-ai-nginx:
     container_name: collab-writing-with-ai-nginx
