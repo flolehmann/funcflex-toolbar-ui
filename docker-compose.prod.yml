@@ -12,6 +12,8 @@ services:
   # builds the frontend
   collab-writing-with-ai-frontend:
     container_name: collab-writing-with-ai-frontend
+    environment:
+      - PUBLIC_URL="/collab-writing-with-ai/"
     build:
       context: ./
       dockerfile: Dockerfile.prod
