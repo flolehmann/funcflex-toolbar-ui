@@ -368,7 +368,7 @@ function App() {
     const [commentState, commentDispatch] = useReducer(commentReducer, initialCommentState);
     const [userState, userDispatch] = useReducer(userReducer, initialUserState);
 
-    const [isReady, studyAlignLib, logger] = useLogger("appLogger", "http://localhost:8000", 1);
+    const [isReady, studyAlignLib, logger] = useLogger("appLogger", "https://hciaitools.uni-bayreuth.de/study-align", 1);
 
     const [wordCount, setWordCount] = useState(0);
     const [charCount, setCharCount] = useState(0);
