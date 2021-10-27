@@ -26,7 +26,7 @@ services:
     container_name: collab-writing-with-ai-frontend
     image: nginx
     ports:
-      - 8876:80
+      - 8001:80
     volumes:
       - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf
       - ./build:/frontend/public
