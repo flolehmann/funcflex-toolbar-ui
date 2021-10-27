@@ -83,7 +83,7 @@ const initialMeState =  {
     type: "you",
     name: "You",
     tag: "@you",
-    picture: process.env.PUBLIC_URL + "user2.svg",
+    picture: process.env.PUBLIC_URL + "/user2.svg",
     online: true
 };
 
@@ -95,7 +95,7 @@ const initialUserState = {
             type: "ai",
             name: "Agent",
             tag: "@agent",
-            picture: process.env.PUBLIC_URL + "agent2.svg",
+            picture: process.env.PUBLIC_URL + "/agent2.svg",
             online: false
         }
     ],
