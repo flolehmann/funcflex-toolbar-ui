@@ -595,26 +595,6 @@ module.exports = function (webpackEnv) {
             // ** STOP ** Are you adding a new loader?
             // Make sure to add the new loader(s) before the "file" loader.
           ],
-        },
-        {
-          test: /ckeditor5-[^/\\]+[/\\]theme[/\\]icons[/\\][^/\\]+\.svg$/,
-          use: [ 'raw-loader' ]
-        },
-        {
-          test: /ckeditor5-[^/\\]+[/\\]theme[/\\].+\.css$/,
-          use: [
-            MiniCssExtractPlugin.loader,
-            'css-loader',
-            {
-              loader: 'postcss-loader',
-              options: styles.getPostCssConfig( {
-                themeImporter: {
-                  themePath: require.resolve( '@ckeditor/ckeditor5-theme-lark' )
-                },
-                minify: true
-              } )
-            }
-          ]
         }
       ],
     },
