@@ -1,5 +1,9 @@
 import React, {useEffect, useReducer, useRef, useState} from 'react';
 
+import './App.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import "./ckeditor/highlight-selector/HighlightSelector.css";
+
 import { CKEditor } from '@ckeditor/ckeditor5-react';
 import { nanoid } from 'nanoid'
 
@@ -19,16 +23,12 @@ import HighlightSelector from "./ckeditor/highlight-selector/HighlightSelector";
 import Sidebar from "./collabo/Sidebar";
 import {Button, Col, Container, Row} from "react-bootstrap";
 
-import './App.css';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import "./ckeditor/highlight-selector/HighlightSelector.css";
 import CommentBalloon from "./collabo/CommentBalloon";
 import Topbar from "./collabo/Topbar";
 import {detectIntent, generate, Intent, summarize, translateDeEn} from "./intelligence/Conversation";
 import {Emulator, Task, TaskTrigger, TimeConfig} from "./intelligence/Emulator";
 import useLogger, {LoggerEvents} from "./logger/logger";
 import {CheckLg, Save, Save2Fill} from "react-bootstrap-icons";
-
 
 const editorConfiguration = {
   plugins: [ Essentials, Bold, Italic, Heading, ListStyle, Alignment, WordCount, HighlightSelector ],
