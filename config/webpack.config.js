@@ -550,15 +550,8 @@ module.exports = function (webpackEnv) {
             {
               test: /ckeditor5-[^/\\]+[/\\]theme[/\\].+\.css$/,
               use: [
-                {
-                  loader: 'style-loader',
-                  options: {
-                    injectType: 'singletonStyleTag',
-                    attributes: {
-                      'data-cke': true
-                    }
-                  }
-                },
+                MiniCssExtractPlugin.loader,
+                'css-loader',
                 {
                   loader: 'postcss-loader',
                   options: styles.getPostCssConfig( {
