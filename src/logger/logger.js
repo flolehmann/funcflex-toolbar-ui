@@ -13,10 +13,15 @@ export default function useLogger(loggerName, apiUrl, studyId) {
             const url = new URL(window.location.href);
             const conditionId = url.searchParams.get("condition_id");
             const loggerKey = url.searchParams.get("logger_key");
-            sal.storeLoggerKey(loggerKey);
-            console.log("CONDITION ID " + conditionId);
-            setConditionId(conditionId);
-            setIsReady(true);
+            if (conditionId) {
+                setConditionId(conditionId);
+            }
+            if (loggerKey) {
+                sal.storeLoggerKey(loggerKey);
+            }
+            if (conditionId && loggerKey) {
+                setIsReady(true);
+            }
         }
     }, []);
 
@@ -136,7 +141,7 @@ export default function useLogger(loggerName, apiUrl, studyId) {
     }
 
     function dispatch(eventName, data, metaData = {}) {
-        if (!conditionId === 0) {
+        if (conditionId === 0) {
             console.warn("Cannot useLogger since no condition_id has been provided.");
         }
         else if (!sal.readLoggerKey()) {
