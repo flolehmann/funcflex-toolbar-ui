@@ -1027,7 +1027,9 @@ function App() {
                                 <Row>
                                     <Col ref={ckEditorRef} style={{position: "relative"}} xs={8}>
                                         { commentBalloon }
-                                        <div id="ckEditorWrapper" onClick={e => console.log(e)} onKeyDown={e => logger(LoggerEvents.KEY_DOWN, e.nativeEvent, {"text": editor.getData()})}>
+                                        <div id="ckEditorWrapper"
+                                             onClick={e =>logger(LoggerEvents.MOUSE_CLICK, e.nativeEvent)}
+                                             onKeyDown={e => logger(LoggerEvents.KEY_DOWN, e.nativeEvent, {"text": editor.getData()})}>
                                           <CKEditor
                                               editor={ DecoupledEditor }
                                               config={ editorConfiguration }
