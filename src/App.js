@@ -37,8 +37,8 @@ const editorConfiguration = {
 
 const prototypeConfig = {
   wordCountLimit: 300,
-  initialDocumentText: "<b>To-do:</b><p>- Blog post about tomato plants</p><p>- Summary (wrap-up / tldr)</p>",
-  documentName: "Blog post about tomato plants + Summary (TLDR)",
+  initialDocumentText: "<b>To-do:</b><p>- Write a blog post about tomato plants</p><p>- Summarize your post (wrap-up / tldr)</p>",
+  documentName: "Blog post about tomato plants + Summary (tldr)",
   documentDescription: "The agent can support you with summarizing, extending, and translating text. Use the comment function for that.",
   infoModalTitle: "Task Briefing",
   infoModalText: `<p>Here you will use an online text editor with AI skills.</p>
@@ -50,6 +50,8 @@ const prototypeConfig = {
             type="video/webm">
     Sorry, your browser doesn't support embedded videos.
 </video>
+
+<hr />
 
 <p>You will have to write an informal blog post for a gardening blog. The main topic is tomato plants. In the same document you will have to write a short summary about your blog post for impatient readers, known as "wrap up" or "too long did not read".</p>
 
@@ -101,10 +103,10 @@ const initialUserState = {
     users: [
         initialMeState,
         {
-            id: "mocked-agent-id",
+            id: "mocked-ai-author",
             type: "ai",
-            name: "Agent",
-            tag: "@agent",
+            name: "AIauthor",
+            tag: "@aiauthor",
             picture: process.env.PUBLIC_URL + "/agent2.svg",
             online: false
         }
