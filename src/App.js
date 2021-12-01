@@ -91,7 +91,7 @@ const initialCommentState = {
 };
 
 const initialMeState =  {
-    id: "mocked-me-id",
+    id: "mocked-agent-id",
     type: "you",
     name: "You",
     tag: "@you",
