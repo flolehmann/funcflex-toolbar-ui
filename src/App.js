@@ -91,7 +91,7 @@ const initialCommentState = {
 };
 
 const initialMeState =  {
-    id: "mocked-agent-id",
+    id: "mocked-me-id",
     type: "you",
     name: "You",
     tag: "@you",
@@ -939,7 +939,7 @@ function App() {
     initialize();
 
     useEffect(() => {
-        const timer = setTimeout(() => setUserOnline("mocked-agent-id", true), 5000);
+        const timer = setTimeout(() => setUserOnline("mocked-ai-author", true), 5000);
         return () => clearTimeout(timer);
     }, []);
 
