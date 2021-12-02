@@ -87,7 +87,6 @@ class StudyAlignLib {
                 xhr.send(encodedParams);
             }
             if (options.method === "POST") {
-                console.log(options);
                 xhr.send(JSON.stringify(options.body));
             }
         });
@@ -190,7 +189,9 @@ class StudyAlignLib {
         const options = {
             method: "POST",
             path: path,
-            headers: {}
+            headers: {
+                'Content-Type': 'application/json'
+            }
         };
         this.setHeaders(options);
         options.body = {
@@ -203,7 +204,9 @@ class StudyAlignLib {
         const options = {
             method: "POST",
             path: path,
-            headers: {}
+            headers: {
+                'Content-Type': 'application/json'
+            }
         };
         this.setLoggerHeaders(options);
         options.body = {
@@ -366,7 +369,9 @@ class StudyAlignLib {
         const options = {
             method: "POST",
             path: "procedures/navigator",
-            headers: {}
+            headers: {
+                'Content-Type': 'application/json'
+            }
         };
         this.setHeaders(options);
         options.body = {
