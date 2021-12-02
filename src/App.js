@@ -99,6 +99,7 @@ const initialMeState =  {
     online: true
 };
 
+const aiAuthorTag = "@aiauthor";
 const initialUserState = {
     users: [
         initialMeState,
@@ -106,7 +107,7 @@ const initialUserState = {
             id: "mocked-ai-author",
             type: "ai",
             name: "AIauthor",
-            tag: "@aiauthor",
+            tag: aiAuthorTag,
             picture: process.env.PUBLIC_URL + "/agent2.svg",
             online: false
         }
@@ -474,7 +475,7 @@ function App() {
         //const matches = parseMessage(text, "@agent");
         const matches = true;
         if (matches) {
-            const agent = userState.users.filter(user => user.tag === "@agent")[0];
+            const agent = userState.users.filter(user => user.tag === aiAuthorTag)[0];
             // infer intent from comment
             try {
                 const intentResult = await detectIntent(text);
