@@ -189,7 +189,8 @@ class StudyAlignLib {
     logInteractionBulkRequest(path, conditionId, interactions) {
         const options = {
             method: "POST",
-            path: path
+            path: path,
+            headers: {}
         };
         this.setLoggerHeaders(options);
         options.body = {
@@ -201,7 +202,8 @@ class StudyAlignLib {
     logInteractionRequest(path, conditionId, interaction) {
         const options = {
             method: "POST",
-            path: path
+            path: path,
+            headers: {}
         };
         this.setLoggerHeaders(options);
         options.body = {
