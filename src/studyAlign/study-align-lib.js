@@ -87,6 +87,7 @@ class StudyAlignLib {
                 xhr.send(encodedParams);
             }
             if (options.method === "POST") {
+                console.log(options);
                 xhr.send(JSON.stringify(options.body));
             }
         });

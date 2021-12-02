@@ -39,7 +39,7 @@ const prototypeConfig = {
   wordCountLimit: 300,
   initialDocumentText: "<b>To-do:</b><p>- Write a blog post about tomato plants</p><p>- Summarize your post (wrap-up / tldr)</p>",
   documentName: "Blog post about tomato plants + Summary (tldr)",
-  documentDescription: "The agent can support you with summarizing, extending, and translating text. Use the comment function for that.",
+  documentDescription: "The AI author can support you with summarizing, extending, and translating text. Use the comment function for that.",
   infoModalTitle: "Task Briefing",
   infoModalText: `<p>Here you will use an online text editor with AI skills.</p>
 
