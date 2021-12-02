@@ -366,6 +366,7 @@ class StudyAlignLib {
         const options = {
             method: "POST",
             path: "procedures/navigator",
+            headers: {}
         };
         this.setHeaders(options);
         options.body = {
