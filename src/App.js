@@ -43,7 +43,7 @@ const prototypeConfig = {
   infoModalTitle: "Task Briefing",
   infoModalText: `<p>Here you will use an online text editor with AI skills.</p>
 
-<p>The AI skills support you with summarizing, extending, and translating text within the editor. By commenting parts of the text with to-dos an agent will take over these tasks. See the screenshots below for a short demonstration.</p>
+<p>The AI skills support you with summarizing, extending, and translating text within the editor. By commenting parts of the text with to-dos an AI author will take over these tasks. See the screenshots below for a short demonstration.</p>
 
 <video controls style="width: 100%">
     <source src="http://dev.lehmannsuperior.de/collabwritingai/briefing-slides.webm"
@@ -106,7 +106,7 @@ const initialUserState = {
         {
             id: "mocked-ai-author",
             type: "ai",
-            name: "AIauthor",
+            name: "AI author",
             tag: aiAuthorTag,
             picture: process.env.PUBLIC_URL + "/agent2.svg",
             online: false
