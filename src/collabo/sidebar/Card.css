@@ -1,0 +1,173 @@
+.comment-card {
+    z-index: 1000;
+    width: 75%;
+    border: 1px solid #eee;
+    padding: 0.75rem;
+}
+
+.card-title,
+.reply-title {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin-bottom: .5rem;
+}
+
+.comment-info-left {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.comment-info-right {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.comment-info-right button {
+    margin-left: 0.5rem;
+}
+
+.comment-card .avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+}
+
+.comment-card .avatar img {
+    width: 100%;
+    height: 100%;
+}
+
+.comment-card .user-data {
+    margin-left: 0.5rem;
+}
+
+.comment-card .user-name {
+    font-size: 1rem;
+}
+
+.comment-card .comment-date {
+    font-size: 0.85rem;
+    font-weight: 400;
+}
+
+.comment-card.selected {
+    border: 1px solid #fff;
+    box-shadow: 0px 0px 5px 0px rgba(166,166,166,0.75);
+    -webkit-box-shadow: 0px 0px 5px 0px rgba(166,166,166,0.75);
+    -moz-box-shadow: 0px 0px 5px 0px rgba(166,166,166,0.75);
+}
+
+.form-group {
+    margin-bottom: .5rem;
+}
+
+.comment-input .content-editable,
+.reply-input .content-editable {
+    outline: 1px solid #ccc;
+    padding: 0.25rem;
+    border-radius: 3px;
+}
+
+.comment-input .content-editable::before {
+    content: "Comment or add other with @";
+    color: #80868b;
+    pointer-events: none;
+    position: absolute;
+}
+
+.reply-input .content-editable::before {
+    content: "Reply or add other with @";
+    color: #80868b;
+    pointer-events: none;
+    position: absolute;
+}
+
+.comment-input.typing .content-editable::before,
+.reply-input.typing .content-editable::before {
+    content: "";
+}
+
+.comment-input .content-editable:focus,
+.comment-input .content-editable:active,
+.reply-input .content-editable:focus,
+.reply-input .content-editable:active{
+    outline: 2px solid #005dc7;
+}
+
+.comment-control button {
+    margin-right: 0.5rem;
+}
+
+.reply,
+.first-comment {
+    border-bottom: 1px solid #eee;
+    margin-bottom: .5rem;
+    padding-bottom: .5rem;
+}
+
+.ai {
+    position: relative;
+}
+
+.ai-content {
+    position: relative;
+}
+
+.ai-text {
+    position: relative;
+    margin-top: 0.25rem;
+    padding: 0.25rem 0.5rem 0.5rem 0.5rem;
+    font-family: "serif";
+    font-size: 0.9rem;
+
+    max-height: 9.2rem;
+    overflow: hidden;
+
+    border-left: 3px solid #78acff;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+    line-height: 1.25rem;
+
+}
+
+.ai-text:after {
+    content: "";
+    text-align: right;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 75%;
+    height: 1.5em;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1) 50%);
+}
+
+.ai-show-details {
+    cursor: pointer;
+    position: absolute;
+    bottom: 0.2rem;
+    right: 0.2rem;
+    font-size: 0.85rem;
+
+    color: #06357a;
+}
+
+.ai-show-details:hover {
+    text-decoration: underline;
+}
+
+.typing-names {
+    font-size: 0.9rem;
+    color: #a0a0a0;
+    background-color: #ecefef;
+    padding: 0.25rem;
+    margin-bottom: 0.25rem;
+    border-radius: 2px;
+}
+
+.button-group button {
+    margin-right: 0.5rem;
+}

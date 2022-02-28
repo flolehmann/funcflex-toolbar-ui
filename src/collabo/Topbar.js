@@ -2,7 +2,6 @@ import React, {useState} from 'react';
 import {FileEarmarkTextFill} from "react-bootstrap-icons";
 
 import './Topbar.css';
-import UserPresence from "./UserPresence";
 import {Badge, Button, Modal} from "react-bootstrap";
 
 function Topbar(props) {
@@ -41,9 +40,6 @@ function Topbar(props) {
                     <h1>{documentName} {modalTrigger} {saveButton}</h1>
                     <p className={"description"}>{description} {infoBadge}</p>
                 </div>
-            </div>
-            <div className={"topbar-right"}>
-                <UserPresence />
             </div>
             {infoModal}
         </div>

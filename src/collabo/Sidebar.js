@@ -1,125 +1,126 @@
 import React, {useCallback, useContext, useEffect, useRef, useState} from 'react';
 import Comment from "./Comment";
 import './Sidebar.css';
-import {CommentsSidebarContext} from "../App";
+import {CardType, SidebarContext} from "../App";
 
 function Sidebar(props) {
 
-    const [commentNodes, setCommentNodes] = useState({});
+    const [cardNodes, setCardNodes] = useState({});
 
-    const csc = useContext(CommentsSidebarContext);
-    const commentState = csc.commentState;
-    const setSelectedCommentId = csc.setSelectedCommentId;
+    const csc = useContext(SidebarContext);
+    const sidebarState = csc.sidebarState;
+    const setSelectedCardId = csc.setSelectedCardId;
 
-    const [selectedComment, setSelectedComment] = useState("");
+    const [selectedCard, setSelectedCard] = useState("");
 
-    const [sortedCommentRects, setSortedCommentRects] = useState({});
-    const [comments, setComments] = useState({});
+    const [sortedCardsRects, setSortedCardsRects] = useState({});
+    const [cards, setCards] = useState({});
 
-    const [commentChangedHeight, setCommentChangedHeight] = useState ({});
+    const [cardChangedHeight, setCardChangedHeight] = useState ({});
 
-    const commentRectsLength = props.commentRectsLength;
+    const cardRectsLength = props.cardRectsLength;
     const sidebarOffsetTop = props.sidebarOffsetTop;
 
     useEffect(() => {
-        // sort comments by CommentCard's top position
-        const sorted = Object.entries(commentState.commentRects)
+        // sort cards by card's top position
+        const sorted = Object.entries(sidebarState.cardRects)
         .sort(([,a],[,b]) => {
             return a.top - b.top
         })
         .reduce((r, [k, v]) => ({ ...r, [k]: v }), {});
-        setSortedCommentRects(sorted);
-        setComments({ ...commentState.comments });
-    }, [commentState.commentRects, commentRectsLength, commentState.comments]);
+        setSortedCardsRects(sorted);
+        setCards({ ...sidebarState.cards });
+    }, [sidebarState.cardRects, cardRectsLength, sidebarState.cards]);
 
     useEffect(() => {
-        // remove nodes of deleted comments
-        for (const id of Object.keys(commentNodes)) {
-            if (!(id in commentState.commentRects)) {
-                delete commentNodes[id];
+        // remove nodes of deleted cards
+        for (const id of Object.keys(cardNodes)) {
+            if (!(id in sidebarState.cardRects)) {
+                delete cardNodes[id];
             }
         }
-    }, [comments]);
+    }, [cards]);
 
     useEffect(() => {
-        selectCard(commentState.selectedCommentId);
-    }, [commentState.selectedCommentId]);
+        selectCard(sidebarState.selectedCardId);
+    }, [sidebarState.selectedCardId]);
 
     const selectCard = (id) => {
         if (id) {
-            setSelectedComment(id);
-            setSelectedCommentId(id);
+            setSelectedCard(id);
+            setSelectedCardId(id);
         } else {
-            setSelectedComment("");
-            setSelectedCommentId();
+            setSelectedCard("");
+            setSelectedCardId();
         }
     };
 
-    // ref callback from commentcards
-    const onRefChangeComment = useCallback(node => {
+    // ref callback from cards
+    const onRefChangeCard = useCallback(node => {
         if (node) {
             const id = node.attributes.getNamedItem("id").value;
 
-            // check if node is already in comment node or old node is disconnected and needs update
-            if (!(id in commentNodes) || (id in commentNodes && !commentNodes[id].isConnected)) {
-                setCommentNodes({...commentNodes, [id]: node});
+            // check if node is already in card node or old node is disconnected and needs update
+            if (!(id in cardNodes) || (id in cardNodes && !cardNodes[id].isConnected)) {
+                setCardNodes({...cardNodes, [id]: node});
             }
         }
     });
 
-    let commentCards = [];
-    const sortedCommentIds = Object.keys(sortedCommentRects);
-    const selectedCommentIndex = sortedCommentIds.indexOf(selectedComment);
-    const isCommentSelected = selectedComment !== "";
+    let cardsList = [];
+    const sortedCardsIds = Object.keys(sortedCardsRects);
+    const selectedCardIndex = sortedCardsIds.indexOf(selectedCard);
+    const isCardSelected = selectedCard !== "";
 
-    let priorSelectedCommentCards = [];
+    let priorSelectedCards = [];
 
-    let priorCommentTop = null;
+    let priorCardTop = null;
     const scrollYOffset = window.pageYOffset;
 
 
-    const sortedCommentIdsBeforeSelected = sortedCommentIds.splice(0, selectedCommentIndex);
-    const max = sortedCommentIdsBeforeSelected.length - 1;
+    const sortedCardIdsBeforeSelected = sortedCardsIds.splice(0, selectedCardIndex);
+    const max = sortedCardIdsBeforeSelected.length - 1;
 
+    console.log("sortedCardsRects", sortedCardsRects);
 
-    // if selected comment, take commentIds before selected card and iterate backwards
-    if (isCommentSelected && commentState.commentRects[selectedComment] && commentState.commentRects[sortedCommentIdsBeforeSelected[max]]) {
-        priorCommentTop = 0;
+    // if selected card, take cardIds before selected card and iterate backwards
+    if (isCardSelected && sidebarState.cardRects[selectedCard] && sidebarState.cardRects[sortedCardIdsBeforeSelected[max]]) {
+        priorCardTop = 0;
 
-        // iterate comments above selected comment
+        // iterate cards above selected card
         for (let i = max; i >= 0; i--) {
-            const id = sortedCommentIdsBeforeSelected[i];
+            const id = sortedCardIdsBeforeSelected[i];
 
             let cardTop;
 
-            // sortedCommentIds[0] is selected comment card
-            // first element above selected card must take selected comment card's top position
+            // sortedCardsIds[0] is selected card
+            // first element above selected card must take selected card's top position
             if (i === max
-                && sortedCommentIds[0] in commentNodes
-                && sortedCommentIdsBeforeSelected[i] in commentNodes
+                && sortedCardsIds[0] in cardNodes
+                && sortedCardIdsBeforeSelected[i] in cardNodes
             ) {
-                const ownRect = commentState.commentRects[id];
-                const ownRef = commentNodes[id];
+                const ownRect = sidebarState.cardRects[id];
+                const ownRef = cardNodes[id];
 
-                const selectedCommentRect = commentState.commentRects[selectedComment];
+                const selectedCardRect = sidebarState.cardRects[selectedCard];
                 // default top position, in case ref to own node does not exist yet
-                cardTop = selectedCommentRect.top + scrollYOffset - sidebarOffsetTop;
+                cardTop = selectedCardRect.top + scrollYOffset - sidebarOffsetTop;
 
                 // if ref to own node exist, adjust positioning
                 if (ownRef) {
-                    if (((selectedCommentRect.top + scrollYOffset - sidebarOffsetTop) - (ownRect.top + scrollYOffset - sidebarOffsetTop) - 10) >= ownRef.offsetHeight) {
+                    if (((selectedCardRect.top + scrollYOffset - sidebarOffsetTop) - (ownRect.top + scrollYOffset - sidebarOffsetTop) - 10) >= ownRef.offsetHeight) {
                         cardTop = ownRect.top + scrollYOffset - sidebarOffsetTop;
                     } else {
-                        cardTop = selectedCommentRect.top + scrollYOffset - sidebarOffsetTop - 10 - ownRef.offsetHeight;
+                        cardTop = selectedCardRect.top + scrollYOffset - sidebarOffsetTop - 10 - ownRef.offsetHeight;
                     }
                 }
             }
 
-            // all other comments above the selected card (starting from the 2nd) use the prior comment's top position
-            if (i < max && sortedCommentIdsBeforeSelected[i + 1] in commentNodes) {
+            // all other cards above the selected card (starting from the 2nd) use the prior card's top position
+            if (i < max && sortedCardIdsBeforeSelected[i + 1] in cardNodes) {
 
-                const ownRect = commentState.commentRects[id];
-                const ownRef = commentNodes[id];
+                const ownRect = sidebarState.cardRects[id];
+                const ownRef = cardNodes[id];
 
                 if (!ownRect) {
                     continue;
@@ -128,54 +129,54 @@ function Sidebar(props) {
                 cardTop = ownRect.top + scrollYOffset - sidebarOffsetTop;
 
                 if (ownRef) {
-                    if ((priorCommentTop - (ownRect.top + scrollYOffset - sidebarOffsetTop) + 10) >= ownRef.offsetHeight) {
+                    if ((priorCardTop - (ownRect.top + scrollYOffset - sidebarOffsetTop) + 10) >= ownRef.offsetHeight) {
                         cardTop = ownRect.top + scrollYOffset - sidebarOffsetTop;
                     } else {
-                        cardTop = priorCommentTop - 10 - ownRef.offsetHeight;
+                        cardTop = priorCardTop - 10 - ownRef.offsetHeight;
                     }
                 }
             }
 
-            priorCommentTop = cardTop;
+            priorCardTop = cardTop;
 
-            const marker = csc.getMarker(id, comments[id].data.user.name);
+            const marker = csc.getMarker(cards[id].type, cards[id].id, cards[id].data.user.name);
 
             if (marker) {
-                const commentCard = <Comment
-                    ref={onRefChangeComment}
+                const card = <Comment
+                    ref={onRefChangeCard}
                     key={id}
-                    comment={comments[id]}
+                    comment={cards[id]}
                     markerText={csc.getMarkedText(marker)}
-                    selected={selectedComment === id}
-                    selectedCard={selectedComment}
+                    selected={selectedCard === id}
+                    selectedCard={selectedCard}
                     cardTop={cardTop}
-                    position={commentState.commentRects[id]}
+                    position={sidebarState.cardRects[id]}
                     selectHandler={selectCard}
-                    changedHeightHandler={(comment) => {
-                        setCommentChangedHeight(comment);
+                    changedHeightHandler={(card) => {
+                        setCardChangedHeight(card);
                     }}
                 />
-                priorSelectedCommentCards.push(commentCard);
+                priorSelectedCards.push(card);
             }
         }
     }
 
-    for (let i = 0; i < sortedCommentIds.length; i++) {
-        const id = sortedCommentIds[i];
+    for (let i = 0; i < sortedCardsIds.length; i++) {
+        const id = sortedCardsIds[i];
 
-        if (!commentState.commentRects[id]) {
+        if (!sidebarState.cardRects[id]) {
             continue;
         }
 
-        let cardTop = commentState.commentRects[id].top - sidebarOffsetTop;
+        let cardTop = sidebarState.cardRects[id].top - sidebarOffsetTop;
 
-        const ownRect = commentState.commentRects[id];
+        const ownRect = sidebarState.cardRects[id];
 
-        if (i > 0 && sortedCommentIds[i - 1] in commentNodes) {
+        if (i > 0 && sortedCardsIds[i - 1] in cardNodes) {
             // ensure to take the recent top position
-            const priorCommentPosition = commentNodes[sortedCommentIds[i - 1]];
-            if (ownRect.top + scrollYOffset - sidebarOffsetTop < (priorCommentTop + priorCommentPosition.offsetHeight)) {
-                cardTop = priorCommentTop + priorCommentPosition.offsetHeight + 10;
+            const priorCardPosition = cardNodes[sortedCardsIds[i - 1]];
+            if (ownRect.top + scrollYOffset - sidebarOffsetTop < (priorCardTop + priorCardPosition.offsetHeight)) {
+                cardTop = priorCardTop + priorCardPosition.offsetHeight + 10;
             } else {
                 cardTop += scrollYOffset;
             }
@@ -185,36 +186,36 @@ function Sidebar(props) {
             cardTop += scrollYOffset;
         }
 
-        priorCommentTop = cardTop;
+        priorCardTop = cardTop;
 
-        const marker = csc.getMarker(id, comments[id].data.user.name);
+        const marker = csc.getMarker(cards[id].type, id, cards[id].data.user.name);
 
         if (marker) {
-            const commentCard = <Comment
-                ref={onRefChangeComment}
+            const card = <Comment
+                ref={onRefChangeCard}
                 key={id}
-                comment={comments[id]}
+                comment={cards[id]}
                 markerText={csc.getMarkedText(marker)}
-                selected={selectedComment === id}
-                selectedCard={selectedComment}
+                selected={selectedCard === id}
+                selectedCard={selectedCard}
                 cardTop={cardTop}
                 position={ownRect}
                 selectHandler={selectCard}
-                changedHeightHandler={(comment) => {
-                    setCommentChangedHeight(comment);
+                changedHeightHandler={(card) => {
+                    setCardChangedHeight(card);
                 }}
             />
-            commentCards.push(commentCard);
+            cardsList.push(card);
         }
     }
 
-    if (isCommentSelected) {
-        commentCards = [...commentCards, ...priorSelectedCommentCards];
+    if (isCardSelected) {
+        cardsList = [...cardsList, ...priorSelectedCards];
     }
 
     return (
       <div className={"sidebar"}>
-          { commentCards }
+          { cardsList }
       </div>
     );
 }

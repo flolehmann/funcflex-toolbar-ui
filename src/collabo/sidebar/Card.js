@@ -3,7 +3,7 @@ import {Button, ButtonGroup, Card, Col, Dropdown, Form, Image, OverlayTrigger, R
 import {CheckLg, ThreeDotsVertical} from 'react-bootstrap-icons';
 import {SidebarContext, CommentStatus, LoggerContext, UserContext} from "../App";
 import CommentForm from "./CommentForm/CommentForm";
-import './Comment.css';
+import './Card.css';
 import AiRefinement from "./AiRefinement";
 import CopyToClipboard from "./CopyToClipboard";
 import {LoggerEvents} from "../logger/logger";
@@ -394,13 +394,7 @@ export default Comment = forwardRef((props, ref) => {
         <Card ref={ref} id={id} className={className} style={style} onClick={select}>
             <Card.Title>
                 <div className={"comment-info-left"}>
-                    <div className={"avatar"}>
-                        <Image src={user.picture} roundedCircle/>
-                    </div>
-                    <div className={"user-data"}>
-                        <div className={"user-name"}>{userName}</div>
-                        <div className={"comment-date"}>{ date }</div>
-                    </div>
+                    CARD
                 </div>
                 <div className={"comment-info-right"}>
                     { firstComment && approveButton }

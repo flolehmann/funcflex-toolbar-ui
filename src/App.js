@@ -23,66 +23,41 @@ import HighlightSelector from "./ckeditor/highlight-selector/HighlightSelector";
 import Sidebar from "./collabo/Sidebar";
 import {Button, Col, Container, Row} from "react-bootstrap";
 
-import CommentBalloon from "./collabo/CommentBalloon";
 import Topbar from "./collabo/Topbar";
-import {detectIntent, generate, Intent, summarize, translateDeEn} from "./intelligence/Conversation";
+import {Intent} from "./intelligence/Conversation";
+import {detectIntent, generate, summarize, translateDeEn} from "./intelligence/Apis";
 import {Emulator, Task, TaskTrigger, TimeConfig} from "./intelligence/Emulator";
 import useLogger, {LoggerEvents} from "./logger/logger";
-import {CheckLg, Save, Save2Fill} from "react-bootstrap-icons";
+import {
+    ArrowsCollapse,
+    ArrowsExpand,
+    ChatLeftFill,
+    CheckLg,
+    InputCursorText,
+    Save,
+    Save2Fill,
+    Translate
+} from "react-bootstrap-icons";
+import FloatingToolbar from "./floatingToolbar/FloatingToolbar";
+import FloatingToolbarIcon from "./floatingToolbar/FloatingToolbarIcon";
+import commentReducer from "./reducers/commentReducer";
+import userReducer from "./reducers/userReducer";
+import prototypeConfig from "./AppConfig";
+import sidebarReducer from "./reducers/sidebarReducer";
+import combineReducers from "./reducers/combineReducer";
 
 const editorConfiguration = {
   plugins: [ Essentials, Bold, Italic, Heading, ListStyle, Alignment, WordCount, HighlightSelector ],
   toolbar: [ '|', 'undo', 'redo', '|', 'heading', '|', 'bold', 'italic', 'underline', '|', 'alignment', '|', 'bulletedList', 'numberedList']
 };
 
-const prototypeConfig = {
-  wordCountLimit: 300,
-  initialDocumentText: "<b>To-do:</b><p>- Write a blog post about tomato plants</p><p>- Summarize your post (wrap-up / tldr)</p>",
-  documentName: "Blog post about tomato plants + Summary (tldr)",
-  documentDescription: "The AI author can support you with summarizing, extending, and translating text. Use the comment function for that.",
-  infoModalTitle: "Task Briefing",
-  infoModalText: `<p>Here you will use an online text editor with AI skills.</p>
-
-<p>The AI skills support you with summarizing, extending, and translating text within the editor. By commenting parts of the text with to-dos an AI author will take over these tasks. See the screenshots below for a short demonstration.</p>
-
-<video controls style="width: 100%">
-    <source src="http://dev.lehmannsuperior.de/collabwritingai/briefing-slides.webm"
-            type="video/webm">
-    Sorry, your browser doesn't support embedded videos.
-</video>
-
-<hr />
-
-<p>You will have to write an informal blog post for a gardening blog. The main topic is tomato plants. In the same document you will have to write a short summary about your blog post for impatient readers, known as "wrap up" or "too long did not read".</p>
-
-<p><b>Information on the task:</b></p>
-
-<p><b>Task:</b> Write a blog post and a summary of that for a gardening blog.</p>
-
-<p><b>Topic:</b> Tomato plants.</p>
-
-<p><b>Language:</b> English.</p>
-
-<p><b>Text length:</b> The blog post must have a length between 300 - 350 words. Additionally, your summary should be concise with a length of three to five sentences maximum.</p>
-
-<p><b>Quality:</b> The quality of the text should be moderate / reasonable. It must not be perfect, yet you should avoid making a lot of mistakes. Try to be efficient and effective at the same time! The task does not assess your writing skills.</p>
-
-<p><b>Time:</b> You should try to finish the task within 20 - 30 minutes.</p>
-
-<p><b>Keywords:</b> The blog post should include the keywords as follow: Tomato, origin, summer, water, balcony, growing, fruit, taste.</p>
-
-<p><b>Resources:</b> Your are allowed to use the following resources for writing your blog post:</p>
-<ul>
-\t<li><a href="https://de.wikipedia.org/wiki/Tomate" target="_blank">https://de.wikipedia.org/wiki/Tomate</a></li>
-\t<li><a href="https://www.mein-schoener-garten.de/pflanzen/gemuse/tomaten" target="_blank">https://www.mein-schoener-garten.de/pflanzen/gemuse/tomaten</a></li>
-<li><a href="https://www.gartentipps.com/tomaten-auf-dem-balkon-ziehen-wertvolle-tipps-zum-anbau.html" target="_blank">https://www.gartentipps.com/tomaten-auf-dem-balkon-ziehen-wertvolle-tipps-zum-anbau.html</a></li>
-<li><a href="https://www.plantura.garden/gartentipps/gemuseratgeber/tomaten-anbau-auf-terrasse-und-balkon" target="_blank">https://www.plantura.garden/gartentipps/gemuseratgeber/tomaten-anbau-auf-terrasse-und-balkon</a></li>
-\t<li><a href="https://www.poetschke.de/beratung/tomate-ratgeber/" target="_blank">https://www.poetschke.de/beratung/tomate-ratgeber/</a></li>
-<li><a href="https://www.native-plants.de/blog/tomatenpflanzen-selbst-ziehen/" target="_blank">https://www.native-plants.de/blog/tomatenpflanzen-selbst-ziehen/</a></li>
-</ul>`,
-};
-
 const data = prototypeConfig.initialDocumentText || '<p>Hello World</p>';
+
+const initialSidebarState = {
+    cards: {},
+    cardRects: {},
+    selectedCard: {}
+};
 
 const initialCommentState = {
     comments: {},
@@ -115,6 +90,14 @@ const initialUserState = {
     me: initialMeState
 }
 
+export const CardType = Object.freeze({
+    "COMMENT": "comment",
+    "AI_EXTEND": "ai_extend",
+    "AI_SUMMARIZE": "ai_summarize",
+    "AI_TRANSLATE": "ai_translate",
+    "AI_PROMPT": "ai_prompt"
+});
+
 export const CommentStatus = Object.freeze({
     "NEW": "NEW",
     "POSTED": "POSTED",
@@ -136,214 +119,7 @@ export const CommentAction = Object.freeze({
     "DELETE": "DELETE"
 });
 
-const commentReducer = (state, action) => {
-    const id = action.payload.id || action.payload.commentId || null;
-    const comment = action.payload.comment || null;
-    const commentRects = action.payload.commentRects;
-    const reply = action.payload.reply || null;
-    const replyId = action.payload.replyId || null;
-    const text = action.payload.text || null;
-    const commentStatus = action.payload.commentStatus || null;
-
-    const comments = state.comments;
-    const replies = state.comments.replies;
-
-    const selectedCommentId = action.payload.selectedCommentId || "";
-
-    const suggestionId = action.payload.suggestionId || null;
-
-    const user = action.payload.user;
-
-    let tempComment;
-    let replyIndex;
-    let userIndex;
-
-    switch (action.type) {
-        case 'addComment':
-            return { ...state,
-                comments: { ...state.comments, [comment.id]: comment },
-                commentRects: commentRects || state.commentRects,
-            };
-        case 'postComment':
-            comment.state = CommentStatus.POSTED
-            comment.history = [...comment.history, {
-                state: CommentStatus.POSTED,
-                time: Date.now()
-            }];
-            return { ...state,
-                comments: {
-                    ...state.comments, [comment.id]: comment
-                }
-            };
-        case 'editComment':
-            tempComment = { ...comments[id] };
-            tempComment.data.text = text;
-            return { ...state,
-                comments: {...comments, [id]: tempComment}
-            };
-        case 'cancelComment':
-            tempComment = { ...comments[id] };
-            tempComment.state = CommentStatus.CANCELLED;
-            tempComment.history = [...tempComment.history, {
-                state: CommentStatus.CANCELLED,
-                time: Date.now()
-            }];
-            return { ...state,
-                comments: {
-                    ...state.comments, [tempComment.id]: tempComment
-                },
-                commentRects: commentRects || state.commentRects
-            };
-        case 'approveComment':
-            tempComment = { ...comments[id] };
-            tempComment.state = CommentStatus.APPROVED;
-            tempComment.history = [...tempComment.history, {
-                state: CommentStatus.APPROVED,
-                time: Date.now()
-            }];
-            return { ...state,
-                comments: {
-                    ...state.comments, [tempComment.id]: tempComment
-                },
-                commentRects: commentRects || state.commentRects
-            };
-        case 'deleteComment':
-            tempComment = { ...comments[id] };
-            tempComment.state = CommentStatus.DELETED;
-            tempComment.history = [...tempComment.history, {
-                state: CommentStatus.DELETED,
-                time: Date.now()
-            }];
-            return { ...state,
-                comments: {
-                    ...state.comments, [tempComment.id]: tempComment
-                },
-                commentRects: commentRects || state.commentRects
-            };
-        case 'historyRecord':
-            tempComment = { ...comments[id] };
-            tempComment.state = commentStatus;
-            tempComment.history = [...tempComment.history, {
-                state: commentStatus,
-                time: Date.now()
-            }];
-            return { ...state,
-                comments: {
-                    ...state.comments, [tempComment.id]: tempComment
-                }
-            };
-        case 'typingReply':
-            tempComment = { ...comments[id] };
-            tempComment.typing = [...tempComment.typing, user];
-            return { ...state,
-                comments: {...comments, [id]: tempComment}
-            };
-        case 'removeTyping':
-            tempComment = { ...comments[id] };
-            userIndex = comment.typing.findIndex(u => u.id === user.id);
-            tempComment.typing.splice(userIndex, 1);
-            return { ...state,
-                comments: {...comments, [id]: tempComment}
-            };
-        case 'postReply':
-            tempComment = { ...comments[id] };
-            tempComment.replies = [ ...tempComment.replies, reply];
-            userIndex = tempComment.typing.findIndex(u => u.id === reply.data.user.id);
-            tempComment.typing.splice(userIndex, 1);
-            return { ...state,
-                comments: {
-                    ...state.comments, [id]: tempComment
-                }
-            };
-        case 'editReply':
-            tempComment = { ...comments[id] };
-            replyIndex = tempComment.replies.findIndex(reply => reply.id === replyId);
-            const editReply = { ...tempComment.replies[replyIndex] };
-            editReply.data.text = text;
-            tempComment.replies[replyIndex] = editReply;
-            return { ...state,
-                comments: {
-                    ...state.comments, [id]: tempComment
-                }
-            };
-        case 'deleteReply':
-            tempComment = { ...comments[id] };
-            replyIndex = tempComment.replies.findIndex(reply => reply.id === replyId);
-            const deletedReply = { ...tempComment.replies[replyIndex] };
-            deletedReply.state = CommentStatus.DELETED;
-            deletedReply.history = [...deletedReply.history, {
-                state: CommentStatus.DELETED,
-                time: Date.now()
-            }];
-            tempComment.replies[replyIndex] = deletedReply;
-            return { ...state,
-                comments: {
-                    ...state.comments, [id]: tempComment
-                }
-            };
-        case 'updateCommentRects':
-            // fast and naive comparison of commentRects
-            const a = JSON.stringify(commentRects);
-            const b = JSON.stringify(state.commentRects);
-            if (a === b) {
-                return state;
-            }
-            return {
-                ...state,
-                commentRects: commentRects
-            };
-        case 'selectCommentMarker':
-            return {
-                ...state,
-                selectedCommentId: selectedCommentId
-            }
-        case 'addSuggestion':
-            tempComment = { ...comments[id] };
-            tempComment.suggestion = {
-                id: suggestionId,
-                user: user
-            }
-            return { ...state,
-                comments: {...comments, [id]: tempComment}
-            };
-        default:
-            throw new Error();
-    }
-};
-
-
-const userReducer = (state, action) => {
-    const id = action.payload.id || action.payload.userId || null;
-    const newUser = action.payload.user || action.payload.newUser || null;
-    const newMe = action.payload.me || null;
-    const newOnline = action.payload.online || false;
-
-    const users = state.users;
-    const me = state.me;
-
-    let userIndex;
-
-    switch (action.type) {
-        case 'setOnline':
-            userIndex = users.findIndex(user => user.id === id);
-            users[userIndex].online = newOnline;
-            return { ...state,
-                users: [...users]
-            }
-        case 'adduser':
-            return { ...state,
-            users: [...users, newUser]
-        };
-        case 'setMe':
-            return { ...state,
-                me: newMe
-            };
-        default:
-            throw new Error();
-    }
-};
-
-export const CommentsSidebarContext = React.createContext(null);
+export const SidebarContext = React.createContext(null);
 export const UserContext = React.createContext(null);
 export const LoggerContext = React.createContext(null);
 
@@ -376,9 +152,9 @@ function App() {
     const [highlightSelector, setHighlightSelector] = useState(null);
     const [caretRect, setCaretRect] = useState(null);
 
-    const [showCommentBalloon, setShowCommentBalloon] = useState(false);
+    const [showFloatingToolbar, setShowFloatingToolbar] = useState(false);
 
-    const [commentState, commentDispatch] = useReducer(commentReducer, initialCommentState);
+    const [sidebarState, sidebarDispatch] = useReducer(sidebarReducer, initialSidebarState);
     const [userState, userDispatch] = useReducer(userReducer, initialUserState);
 
     const [isReady, studyAlignLib, logger] = useLogger("appLogger", "https://hciaitools.uni-bayreuth.de/study-align", 1);
@@ -395,7 +171,7 @@ function App() {
             setOnChangeView();
             setOnUndoRedo();
             setCaretDetector();
-            setShowBalloon();
+            displayFloatingToolbar();
             setOnUpdateMarker();
             setClickObserver();
             setOnClickMarker();
@@ -421,13 +197,14 @@ function App() {
         setHighlightSelector(editor.plugins.get('HighlightSelector'));
     }
 
-    const addComment = () => {
+    const addAiCard = (type) => {
         if (!highlightSelector) {
             return;
         }
         const user = userState.me;
-        const id = highlightSelector.add("comment", user.name, onMarkerChange);
-        const newComment = {
+        const id = highlightSelector.add(type, user.name, onMarkerChange);
+        const newExtendCard = {
+            type: type,
             id: id,
             state: CommentStatus.NEW,
             data: {
@@ -445,12 +222,50 @@ function App() {
                 }
             ]
         }
-        const commentRects = getCommentRects();
-        commentDispatch({
-            type: 'addComment',
+        const cardRects = getCardRects();
+        sidebarDispatch({
+            type: 'addCard',
             payload: {
-                comment: newComment,
-                commentRects: commentRects
+                card: newExtendCard,
+                cardRects: cardRects
+            }
+        });
+        const marker = getMarker(type, id, user.name);
+        const markedText = getMarkerText(marker);
+        logger(LoggerEvents.COMMENT_ADD, {"commentId": id, "comment": newExtendCard, "markedText": markedText});
+    }
+
+    const addComment = () => {
+        if (!highlightSelector) {
+            return;
+        }
+        const user = userState.me;
+        const id = highlightSelector.add("comment", user.name, onMarkerChange);
+        const newComment = {
+            type: CardType.COMMENT,
+            id: id,
+            state: CommentStatus.NEW,
+            data: {
+                user: user,
+                date: Date.now()
+            },
+            replies: [],
+            //deletedReplies: [],
+            typing: [],
+            suggestion: null,
+            history: [
+                {
+                    state: CommentStatus.NEW,
+                    time: Date.now()
+                }
+            ]
+        }
+        const cardRects = getCardRects(CardType.COMMENT);
+        sidebarDispatch({
+            type: 'addCard',
+            payload: {
+                card: newComment,
+                cardRects: cardRects
             }
         });
         const marker = getMarker(id, user.name);
@@ -459,12 +274,12 @@ function App() {
     }
 
     const postComment = (id, text) => {
-        const comment = commentState.comments[id];
+        const comment = sidebarState.cards[id];
         comment.data.text = text;
-        commentDispatch({
+        sidebarDispatch({
             type: 'postComment',
             payload: {
-                comment: comment
+                card: comment
             }
         });
         logger(LoggerEvents.COMMENT_POST, {"commentId": id, "comment": comment});
@@ -540,7 +355,7 @@ function App() {
     }
 
     const editComment = (id, text) => {
-        commentDispatch({
+        sidebarDispatch({
             type: 'editComment',
             payload: {
                 id: id,
@@ -554,11 +369,11 @@ function App() {
         if (!highlightSelector) {
             return null;
         }
-        const cancelledComment = commentState.comments[id];
+        const cancelledComment = sidebarState.comments[id];
         const user = cancelledComment.data.user.name;
         highlightSelector.remove("comment", id, user);
-        const commentRects = getCommentRects();
-        commentDispatch({
+        const commentRects = getCardRects(CardType.COMMENT);
+        sidebarDispatch({
             type: 'cancelComment',
             payload: {
                 id: id,
@@ -572,14 +387,14 @@ function App() {
         if (!highlightSelector) {
             return null;
         }
-        const comment = commentState.comments[id];
+        const comment = sidebarState.comments[id];
         const user = comment.data.user.name;
 
         removeSuggestion(comment);
         highlightSelector.remove("comment", id, user);
 
-        const commentRects = getCommentRects();
-        commentDispatch({
+        const commentRects = getCardRects(CardType.COMMENT);
+        sidebarDispatch({
             type: 'approveComment',
             payload: {
                 id: id,
@@ -592,14 +407,14 @@ function App() {
         if (!highlightSelector) {
             return null;
         }
-        const comment = commentState.comments[id];
+        const comment = sidebarState.comments[id];
         const user = comment.data.user.name;
 
         removeSuggestion(comment);
         highlightSelector.remove("comment", id, user);
 
-        const commentRects = getCommentRects();
-        commentDispatch({
+        const commentRects = getCardRects(CardType.COMMENT);
+        sidebarDispatch({
             type: 'deleteComment',
             payload: {
                 id: id,
@@ -610,7 +425,7 @@ function App() {
     }
 
     const historyRecord = (id, commentStatus) => {
-        commentDispatch({
+        sidebarDispatch({
             type: 'historyRecord',
             payload: {
                 id: id,
@@ -620,7 +435,7 @@ function App() {
     }
 
     const typingReply = (id, user) => {
-        commentDispatch({
+        sidebarDispatch({
             type: 'typingReply',
             payload: {
                 id: id,
@@ -648,7 +463,7 @@ function App() {
             ]
         };
 
-        commentDispatch({
+        sidebarDispatch({
             type: 'postReply',
             payload: {
                 id: id,
@@ -678,7 +493,7 @@ function App() {
             ]
         };
 
-        commentDispatch({
+        sidebarDispatch({
             type: 'postReply',
             payload: {
                 id: id,
@@ -689,7 +504,7 @@ function App() {
     }
 
     const editReply = (commentId, replyId, text) => {
-        commentDispatch({
+        sidebarDispatch({
             type: 'editReply',
             payload: {
                 commentId: commentId,
@@ -701,7 +516,7 @@ function App() {
     }
 
     const deleteReply = (commentId, replyId) => {
-        commentDispatch({
+        sidebarDispatch({
             type: 'deleteReply',
             payload: {
                 commentId: commentId,
@@ -711,47 +526,50 @@ function App() {
         logger(LoggerEvents.REPLY_DELETE, {"commentId": commentId, "replyId": replyId});
     }
 
-    // reactCommentState is set via useEffect on highlightSelector to make it available
+    // reactSidebarState is set via useEffect on highlightSelector to make it available
     // in callbacks from inside highlightSelector
-    const onMarkerChange = (deletionPosition, annotationType, id, user, reactCommentState) => {
+    const onMarkerChange = (deletionPosition, annotationType, id, user, reactSidebarState) => {
         if (deletionPosition) {
-            const comment = reactCommentState && reactCommentState.comments[id];
-            removeSuggestion(comment);
+            const card = reactSidebarState && reactSidebarState.cards[id];
+            removeSuggestion(card);
             highlightSelector.remove(annotationType, id, user);
-            updateCommentRects();
+            updateCardRects();
         }
     }
 
-    const getCommentRects = () => {
+    const getCardRects = () => {
         if (!highlightSelector) {
             return;
         }
-        highlightSelector.computeRects("comment")
-        let rects = highlightSelector.getRects();
-        return rects["comment"];
+        // DECOUPLING CARDS
+        for (const property in CardType) {
+            highlightSelector.computeRects(CardType[property])
+        }
+        let rects = highlightSelector.getFlattenedRects();
+        return rects;
     }
 
-    const updateCommentRects = () => {
-        const commentRects = getCommentRects();
-        commentDispatch({
-            type: 'updateCommentRects',
+    const updateCardRects = () => {
+        const cardRects = getCardRects();
+        sidebarDispatch({
+            type: 'updateCardRects',
             payload: {
-                commentRects: commentRects
+                cardRects: cardRects
             }
         });
     }
 
-    const setSelectedCommentId = (selectedCommentId) => {
-        commentDispatch({
-            type: 'selectCommentMarker',
+    const setSelectedCardId = (selectedCardId) => {
+        sidebarDispatch({
+            type: 'selectCardMarker',
             payload: {
-                selectedCommentId: selectedCommentId
+                selectedCardId: selectedCardId
             }
         });
     }
 
     const addSuggestion = (commentId, suggestionId, user) => {
-        commentDispatch({
+        sidebarDispatch({
             type: 'addSuggestion',
             payload: {
                 commentId: commentId,
@@ -788,11 +606,11 @@ function App() {
         return highlightSelector.addAtRange(range,"suggestion", user.name, onMarkerChange)
     }
 
-    const getMarker = (id, user) => {
+    const getMarker = (type, id, user) => {
         if (!highlightSelector) {
             return;
         }
-        return highlightSelector.getMarker("comment", id, user);
+        return highlightSelector.getMarker(type, id, user);
     }
 
     const getMarkerText = (marker) => {
@@ -830,40 +648,39 @@ function App() {
         return highlightSelector.createParagraphWithText(text);
     }
 
-    const setCurrentSelectedComment = (id, user) => {
+    const setCurrentSelectedCard = (type, id, user) => {
         if (!highlightSelector) {
             return;
         }
-        highlightSelector.setCurrentSelectedAnnotation("comment", id, user);
+        highlightSelector.setCurrentSelectedAnnotation(type, id, user);
     }
 
-    const unsetCurrentSelectedComment = (id, user, refresh = false) => {
+    const unsetCurrentSelectedCard = (type, id, user, refresh = false) => {
         if (!highlightSelector) {
             return;
         }
-        highlightSelector.unsetCurrentSelectedAnnotation("comment", id, user, true);
+        highlightSelector.unsetCurrentSelectedAnnotation(type, id, user, true);
     }
 
     const setOnRender = () => {
         if (!highlightSelector) {
             return;
         }
-        highlightSelector.setOnRender(updateCommentRects)
+        highlightSelector.setOnRender(updateCardRects)
     }
 
     const setOnChangeData = () => {
         if (!highlightSelector) {
             return;
         }
-        highlightSelector.setOnChangeData(updateCommentRects)
+        highlightSelector.setOnChangeData(updateCardRects)
     }
 
     const setOnChangeView = () => {
         if (!highlightSelector) {
             return;
         }
-
-        highlightSelector.setOnChangeView(updateCommentRects)
+        highlightSelector.setOnChangeView(updateCardRects)
     }
 
     const setOnUndoRedo = () => {
@@ -899,11 +716,11 @@ function App() {
         highlightSelector.setCaretDetector(getCaretRect);
     }
 
-    const setShowBalloon = () => {
+    const displayFloatingToolbar = () => {
         if (!highlightSelector) {
             return;
         }
-        highlightSelector.setShowBalloon(setShowCommentBalloon);
+        highlightSelector.setShowFloatingToolbar(setShowFloatingToolbar);
     }
 
     const setClickObserver = () => {
@@ -917,7 +734,7 @@ function App() {
         if (!highlightSelector) {
             return;
         }
-        highlightSelector.setOnClickMarker(setSelectedCommentId);
+        highlightSelector.setOnClickMarker(setSelectedCardId);
     }
 
     const runStats = () => {
@@ -929,13 +746,44 @@ function App() {
         }
     }
 
-    const commentBalloon = <CommentBalloon onMouseDown={() => {
-                                                setShowCommentBalloon(false);
-                                                addComment()}}
-                                           isVisible={showCommentBalloon}
-                                           ckEditorWidth={ckEditorWidth}
-                                           ckEditorOffsetTop={ckEditorOffsetTop}
-                                           caretPosition={caretRect} />;
+    const extendIcon = <FloatingToolbarIcon tooltipText={"Extend text"}
+                                            onMouseDown={() => {
+                                                setShowFloatingToolbar(false);
+                                                addAiCard(CardType.AI_EXTEND)}}>
+        <ArrowsExpand />
+    </FloatingToolbarIcon>
+
+
+    const summarizeIcon = <FloatingToolbarIcon tooltipText={"Summarize text"}
+                                               onMouseDown={() => {
+                                                   setShowFloatingToolbar(false);
+                                                   addAiCard(CardType.AI_SUMMARIZE)}}>
+        <ArrowsCollapse />
+    </FloatingToolbarIcon>
+
+    const translateIcon = <FloatingToolbarIcon tooltipText={"Translate text"}
+                                               onMouseDown={() => {
+                                                   setShowFloatingToolbar(false);
+                                                   addComment()}}>
+        <Translate />
+    </FloatingToolbarIcon>
+
+    const promptIcon = <FloatingToolbarIcon tooltipText={"Prompt function"}
+                                            onMouseDown={() => {
+                                                setShowFloatingToolbar(false);
+                                                addComment()}}>
+        <InputCursorText />
+    </FloatingToolbarIcon>
+
+    const floatingToolbar = <FloatingToolbar isVisible={showFloatingToolbar}
+                                             ckEditorWidth={ckEditorWidth}
+                                             ckEditorOffsetTop={ckEditorOffsetTop}
+                                             caretPosition={caretRect}>
+        {extendIcon}
+        {summarizeIcon}
+        {translateIcon}
+        {promptIcon}
+    </FloatingToolbar>;
 
     initialize();
 
@@ -955,29 +803,29 @@ function App() {
     }, [isReady]);
 
     useEffect(() => {
-        // unselect comment, if comment balloon gets displayed
-        // comment ballon's visibility is defined by showCommentBalloon and an existing caretRect
-        if (showCommentBalloon && caretRect !== null && commentState.selectedCommentId) {
-            const comment = commentState.comments[commentState.selectedCommentId] ||
-                (commentState.newComments && commentState.newComments[commentState.selectedCommentId]);
-            if (comment) {
-                unsetCurrentSelectedComment(comment.id, comment.data.user.name, true);
-                setSelectedCommentId();
+        // unselect card, if floating toolbar gets displayed
+        // floating toolbar's visibility is defined by showFloatingToolbar and an existing caretRect
+        if (showFloatingToolbar && caretRect !== null && sidebarState.selectedCardId) {
+            const card = sidebarState.cards[sidebarState.selectedCardId] ||
+                (sidebarState.newCards && sidebarState.newCards[sidebarState.selectedCardId]);
+            if (card) {
+                unsetCurrentSelectedCard(card.type, card.id, card.data.user.name, true);
+                setSelectedCardId();
             }
         }
     }, [caretRect]);
 
     useEffect(() => {
         if (highlightSelector) {
-            highlightSelector.setReactCommentState(commentState);
+            highlightSelector.setReactSidebarState(sidebarState);
         }
-    }, [commentState]);
+    }, [sidebarState]);
 
     useEffect(() => {
-        if (commentState.selectedCommentId !== "") {
-            setShowCommentBalloon(false);
+        if (sidebarState.selectedCardId !== "") {
+            setShowFloatingToolbar(false);
         }
-    }, [commentState.selectedCommentId]);
+    }, [sidebarState.selectedCardId]);
 
     // useEffect(async () => {
     //     const url = new URL(window.location.href);
@@ -1039,7 +887,7 @@ function App() {
                             <Container>
                                 <Row>
                                     <Col ref={ckEditorRef} style={{position: "relative"}} xs={8}>
-                                        { commentBalloon }
+                                        { floatingToolbar }
                                         <div id="ckEditorWrapper"
                                              onClick={e =>logger(LoggerEvents.MOUSE_CLICK, e.nativeEvent)}
                                              onKeyDown={e => logger(LoggerEvents.KEY_DOWN, e.nativeEvent, {"text": editor.getData()})}>
@@ -1056,6 +904,7 @@ function App() {
                                                   toolbarContainer.appendChild( editor.ui.view.toolbar.element );
                                               } }
                                               onChange={ ( event, editor ) => {
+                                                  console.log(editor.getData());
                                                   logger(LoggerEvents.TEXT_STATS, {"characters": charCount, "words": wordCount});
                                               } }
                                               onBlur={ ( event, editor ) => {
@@ -1069,8 +918,8 @@ function App() {
                                         </div>
                                     </Col>
                                     <Col ref={sidebarRef} style={{position: "relative"}} xs={4}>
-                                        <CommentsSidebarContext.Provider value={{
-                                            commentState: commentState,
+                                        <SidebarContext.Provider value={{
+                                            sidebarState: sidebarState,
                                             cancelComment: cancelComment,
                                             postComment: postComment,
                                             editComment: editComment,
@@ -1080,10 +929,10 @@ function App() {
                                             postReply: postReply,
                                             editReply: editReply,
                                             deleteReply: deleteReply,
-                                            setSelectedCommentId: setSelectedCommentId,
+                                            setSelectedCardId: setSelectedCardId,
                                             addSuggestion: addSuggestion,
-                                            setCurrentSelectedComment: setCurrentSelectedComment,
-                                            unsetCurrentSelectedComment: unsetCurrentSelectedComment,
+                                            setCurrentSelectedCard: setCurrentSelectedCard,
+                                            unsetCurrentSelectedCard: unsetCurrentSelectedCard,
                                             getMarker: getMarker,
                                             getMarkedText: getMarkerText,
                                             replaceMarkedText: replaceMarkedText,
@@ -1092,8 +941,8 @@ function App() {
                                             createParagraphWithText: createParagraphWithText,
                                             addSuggestionMarkerAtRange: addSuggestionMarkerAtRange
                                         }}>
-                                            <Sidebar sidebarOffsetTop={sidebarOffsetTop} commentRectsLength={Object.keys(commentState.commentRects).length}/>
-                                        </CommentsSidebarContext.Provider>
+                                            <Sidebar sidebarOffsetTop={sidebarOffsetTop} cardRectsLength={Object.keys(sidebarState.cardRects).length}/>
+                                        </SidebarContext.Provider>
                                     </Col>
                                 </Row>
                             </Container>

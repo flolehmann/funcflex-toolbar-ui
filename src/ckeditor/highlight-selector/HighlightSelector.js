@@ -19,7 +19,7 @@ export default class HighlightSelector extends Plugin {
     rects = {};
     caretRect = null;
     currentSelectedMarker = "";
-    reactCommentState = null;
+    reactSidebarState = null;
 
     // undo and redo callback workaround
     // text
@@ -105,7 +105,6 @@ export default class HighlightSelector extends Plugin {
     }
 
     markerHighlightView(data, conversionApi) {
-        //console.log("markerHighlightview", data);
         const [ , annotationType, annotationId, userId ] = data.markerName.split(':');
         const annotationAttributeId = this.createAnnotationAttribute(annotationType);
         const attributes = {}
@@ -117,8 +116,6 @@ export default class HighlightSelector extends Plugin {
             attributes[userAttributeId] = userId
         }
 
-        //console.log("MARKER TO HIGHLIGHT");
-        //console.log(this.currentSelectedMarker, data.markerName);
         let classes = ['annotation', annotationType, annotationType + "-" + annotationId]
         if (userId) {
             classes.push(annotationType + "-by-" + userId)
@@ -140,12 +137,9 @@ export default class HighlightSelector extends Plugin {
             for (const range of editor.model.document.selection.getRanges()) {
                 console.log("Add Annotation:", annotationType, id, "user: " + userId);
                 const marker = writer.addMarker(this.createAnnotationIdentifier(annotationType, id, userId), { range, usingOperation: false, affectsData: true  } );
-                console.log(marker)
                 if (onChangeEventCallback) {
                     marker.on('change:range', (eventInfo, oldRange, data) => {
-                        console.log(annotationType, id, "user: " + userId);
-                        console.log("INSIGHTS", eventInfo, oldRange, data);
-                        onChangeEventCallback(data.deletionPosition, annotationType, id, userId, this.reactCommentState);
+                        onChangeEventCallback(data.deletionPosition, annotationType, id, userId, this.reactSidebarState);
                     });
                 }
             }
@@ -159,12 +153,8 @@ export default class HighlightSelector extends Plugin {
         editor.model.change( writer => {
             console.log("Add Annotation:", annotationType, id, "user: " + userId);
             const marker = writer.addMarker(this.createAnnotationIdentifier(annotationType, id, userId), { range, usingOperation: false, affectsData: true  } );
-            console.log(marker)
             if (onChangeEventCallback) {
                 marker.on('change:range', (eventInfo, oldRange, data) => {
-                    console.log(annotationType, id, "user: " + userId);
-                    console.log("MARKER EVENT!");
-                    console.log("INSIGHTS", eventInfo, oldRange, data);
                     onChangeEventCallback(data.deletionPosition, annotationType, id, userId);
                 });
             }
@@ -192,6 +182,7 @@ export default class HighlightSelector extends Plugin {
         const editor = this.editor;
         const markerIdentifier = this.createAnnotationIdentifier(annotationType, annotationId, userId);
         const marker = editor.model.markers.get(markerIdentifier);
+
         if (!marker) {
             return;
         }
@@ -204,13 +195,10 @@ export default class HighlightSelector extends Plugin {
     }
 
     getMarker(annotationType, annotationId, userId = null) {
-        //console.log("Get Annotation:", annotationType, annotationId);
         const editor = this.editor;
         const annotationIdentifier = this.createAnnotationIdentifier(annotationType, annotationId, userId);
         const markers = editor.model.markers;
-       // console.log("MARKERS", markers);
         const marker = markers.get(annotationIdentifier);
-        //console.log("MARKER", marker);
         return marker;
     }
 
@@ -218,7 +206,6 @@ export default class HighlightSelector extends Plugin {
         const result = [];
         const range = marker.getRange();
         for ( const item of range.getItems() ) {
-            //console.log("ITEM", item);
             if (item.is("textProxy")) {
                 result.push(item.data);
             }
@@ -229,7 +216,6 @@ export default class HighlightSelector extends Plugin {
     replaceMarkedText(text, marker) {
         const editor = this.editor;
         const range = marker.getRange();
-        console.log(range);
         editor.model.change( writer => {
             editor.model.insertContent(writer.createText(text), range);
         });
@@ -244,16 +230,12 @@ export default class HighlightSelector extends Plugin {
     }
 
     insertAfterMarkedText (text, marker, insertElement = false) {
-        console.log("insertAfterMarkedText", text, marker);
         let range;
         const editor = this.editor;
         editor.model.change( writer => {
             if (insertElement) {
-                console.log("INSERT CONTENT")
-                console.log(marker.getEnd());
                 writer.insert( text, marker.getEnd(), 'after');
             } else {
-                console.log("INSERT TEXT");
                 //writer.insertText( text, marker.getEnd(), 'after' );
                 const spaceRange = editor.model.insertContent(writer.createText(" "), marker.getEnd(), 'after');
                 range = editor.model.insertContent( writer.createText(text), spaceRange.end, 'after');
@@ -281,7 +263,7 @@ export default class HighlightSelector extends Plugin {
     }
 
     createAnnotationAttribute(annotationType) {
-        return "data-" + annotationType + "-id";
+        return "data-" + String(annotationType).toLowerCase() + "-id";
     }
 
     createUserAttribute() {
@@ -289,10 +271,11 @@ export default class HighlightSelector extends Plugin {
     }
 
     computeRects(annotationType) {
-        const attributeName = this.createAnnotationAttribute(annotationType);
         const annotations = Array.from(document.getElementsByClassName(annotationType));
         const result = {};
         for (let i = 0; i < annotations.length; i++) {
+            let dataAnnotationType = annotations[i].attributes["data-annotation-type"].value;
+            let attributeName = this.createAnnotationAttribute(dataAnnotationType);
             let id = annotations[i].attributes[attributeName].value;
             if (!(id in result)) {
                 result[id] = new Rect(annotations[i]);
@@ -308,6 +291,14 @@ export default class HighlightSelector extends Plugin {
         return this.rects;
     }
 
+    getFlattenedRects() {
+        let rects = {};
+        for (const type in this.rects) {
+            rects = {...rects, ...this.rects[type]}
+        }
+        return rects;
+    }
+
     setCaretRect() {
         const range = document.getSelection().getRangeAt(0);
         this.caretRect = new Rect(range);
@@ -321,7 +312,6 @@ export default class HighlightSelector extends Plugin {
         const editor = this.editor;
 
         editor.editing.view.document.on('selectionChange', (eventInfo, data) => {
-            //console.log("selectionChange", data);
             const selection = editor.model.document.selection;
             const range = Array.from(selection.getFirstRange());
 
@@ -335,7 +325,7 @@ export default class HighlightSelector extends Plugin {
         });
     }
 
-    setShowBalloon(callback) {
+    setShowFloatingToolbar(callback) {
         const editor = this.editor;
         editor.editing.view.document.on('selectionChange', (eventInfo, data) => {
             if (data.newSelection.getFirstPosition().compareWith(data.newSelection.getLastPosition()) === "before") {
@@ -421,8 +411,6 @@ export default class HighlightSelector extends Plugin {
                 const user = annotation.attributes.getNamedItem(userAttribute);
                 const isSelected = annotation.classList.contains("selected");
 
-                console.log("IS SELECTEd", isSelected);
-
                 let updateId = this.setCurrentSelectedAnnotation(annotationType.value, id.value, user.value, isSelected);
 
                 if (callback) {
@@ -448,7 +436,7 @@ export default class HighlightSelector extends Plugin {
 
         // set new marker
         if (!isSelected && this.currentSelectedMarker !== annotationIdentifier) {
-            console.log("SET SELECTED MARKER")
+            console.log("SET SELECTED MARKER", annotationIdentifier)
             this.currentSelectedMarker = annotationIdentifier;
             this.update(annotationType, id, user);
             return id;
@@ -484,7 +472,7 @@ export default class HighlightSelector extends Plugin {
         return currentParent;
     }
 
-    setReactCommentState(reactCommentState) {
-        this.reactCommentState = reactCommentState;
+    setReactSidebarState(reactSidebarState) {
+        this.reactSidebarState = reactSidebarState;
     }
 }

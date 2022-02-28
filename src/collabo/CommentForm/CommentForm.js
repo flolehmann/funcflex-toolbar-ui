@@ -1,9 +1,8 @@
 import React, {useContext, useEffect, useState} from 'react';
 
-import '../CommentBallon.css';
 import {Button, Col, Form, Row} from "react-bootstrap";
 import CommentInput from "./CommentInput";
-import {CommentsSidebarContext, LoggerContext} from "../../App";
+import {SidebarContext, LoggerContext} from "../../App";
 
 import './CommentForm.css';
 import {LoggerEvents} from "../../logger/logger";
@@ -11,7 +10,7 @@ import {LoggerEvents} from "../../logger/logger";
 
 function CommentForm(props) {
 
-    const csc = useContext(CommentsSidebarContext);
+    const csc = useContext(SidebarContext);
 
     const lc = useContext(LoggerContext);
     const logger = lc.logger;

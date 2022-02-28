@@ -1,11 +1,22 @@
-.comment {
+.comment,
+.ai_extend {
     background-color: rgba(255, 191, 0, 0.4);
 }
 
-.comment.selected {
+.ai_summarize {
+    background-color: rgba(255, 0, 190, 0.4);
+}
+
+.comment.selected,
+.ai_extend.selected {
     background-color: rgba(255, 191, 0, 0.9);
+}
+
+.ai_summarize.selected {
+    background-color: rgba(50, 0, 190, 0.4);
 }
 
 .suggestion {
     background-color: rgba(0, 217, 255, 0.22);
 }
+
