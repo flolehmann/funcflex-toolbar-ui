@@ -18,7 +18,8 @@ const APIS = {
     gpt_3: {
         url: "https://api.openai.com/v1/completions",
         model: "text-davinci-002",
-        key: "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"
+        key: process.env.REACT_APP_OPENAI_KEY
+        //key: "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"
         //key: "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"
     }
 };

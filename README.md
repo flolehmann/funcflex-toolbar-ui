@@ -1,3 +1,7 @@
+# .env file needed containing the OpenAI API Key:
+
+`REACT_APP_OPENAI_KEY = "YOUR KEY"`
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
