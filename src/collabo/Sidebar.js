@@ -22,7 +22,6 @@ function Sidebar(props) {
     const sidebarOffsetTop = props.sidebarOffsetTop;
 
     useEffect(() => {
-        console.log("SIDEBAR SORT UPDATE")
         // sort cards by card's top position
         const sorted = Object.entries(sidebarState.cardRects)
         .sort(([,a],[,b]) => {
@@ -190,8 +189,6 @@ function Sidebar(props) {
 
         const marker = csc.getMarker(cards[id].type, id, cards[id].data.user.name);
 
-        console.log(marker)
-
         if (marker) {
             const card = <AnnotationCard
                 ref={onRefChangeCard}
@@ -218,8 +215,6 @@ function Sidebar(props) {
     if (isCardSelected) {
         cardsList = [...cardsList, ...priorSelectedCards];
     }
-
-    console.log("CARDSLIST", cardsList)
 
     return (
       <div className={"sidebar"}>

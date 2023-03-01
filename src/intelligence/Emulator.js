@@ -9,7 +9,6 @@ export class Emulator {
     }
 
     addTask(task) {
-        console.log("ADD TASK TO EMU", task);
         this.taskList[nanoid()] = task;
     }
 
@@ -55,7 +54,6 @@ export class Emulator {
                 }
 
                 if (!this.running) {
-                    console.log("EMULATOR", "STOPPING");
                     clearInterval(interval);
                 }
             }, 2000);

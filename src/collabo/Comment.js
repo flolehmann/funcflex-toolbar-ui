@@ -118,7 +118,6 @@ export default Comment = forwardRef((props, ref) => {
         }
 
         const addSuggestionMarkerAtRange = (range, user) => {
-            console.log("RANGE", range, "USER", user)
             return csc.addSuggestionMarkerAtRange(range, user);
         }
 

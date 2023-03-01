@@ -190,7 +190,6 @@ function sidebarReducer(state, action) {
             tempCard = { ...cards[id] };
             tempCard.ai = ai;
             tempCard.isLoading = false;
-            console.log("ADDED AI RESULT")
             return { ...state,
                 cards: {...cards, [id]: tempCard}
             };

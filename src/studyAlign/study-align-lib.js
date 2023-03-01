@@ -131,7 +131,6 @@ class StudyAlignLib {
         };
         this.setHeaders(options);
         const yo = this.request(options);
-        console.log(yo);
         return yo;
     }
     // Admin related functions

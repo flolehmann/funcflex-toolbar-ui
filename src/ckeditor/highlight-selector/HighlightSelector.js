@@ -140,7 +140,6 @@ export default class HighlightSelector extends Plugin {
         let id = nanoid();
         editor.model.change( writer => {
             for (const range of editor.model.document.selection.getRanges()) {
-                console.log("Add Annotation:", annotationType, id, "user: " + userId);
                 const marker = writer.addMarker(this.createAnnotationIdentifier(annotationType, id, userId), { range, usingOperation: false, affectsData: true  } );
                 if (onChangeEventCallback) {
                     marker.on('change:range', (eventInfo, oldRange, data) => {
@@ -156,7 +155,6 @@ export default class HighlightSelector extends Plugin {
         const editor = this.editor;
         let id = nanoid();
         editor.model.change( writer => {
-            console.log("Add Annotation:", annotationType, id, "user: " + userId);
             const marker = writer.addMarker(this.createAnnotationIdentifier(annotationType, id, userId), { range, usingOperation: false, affectsData: true  } );
             if (onChangeEventCallback) {
                 marker.on('change:range', (eventInfo, oldRange, data) => {
@@ -168,7 +166,6 @@ export default class HighlightSelector extends Plugin {
     }
 
     remove(annotationType, annotationId, userId = null) {
-        console.log("Remove Annotation:", annotationType, annotationId);
         const editor = this.editor;
         const annotationIdentifier = this.createAnnotationIdentifier(annotationType, annotationId, userId);
         editor.model.change(writer => {
@@ -210,13 +207,11 @@ export default class HighlightSelector extends Plugin {
     getMarkerText(marker) {
         const result = [];
         const range = marker.getRange();
-        console.log(range);
         for ( const item of range.getItems() ) {
             if (item.is("textProxy")) {
                 result.push(item.data);
             }
         }
-        console.log(result);
         return result.join(" ");
     }
 
@@ -225,7 +220,6 @@ export default class HighlightSelector extends Plugin {
 
         let shiftedPosition = startPosition.getShiftedBy(startPosition.offset * -1);
         if (charsBefore > startPosition.offset || startShift) {
-            console.log("startPosition", startPosition)
             // check if there is an element before
             if (startPosition.parent.previousSibling) {
                 //shift position path up to element before
@@ -236,7 +230,6 @@ export default class HighlightSelector extends Plugin {
                 }
             }
         }
-        console.log("COMPARE", startPosition, shiftedPosition)
 
         const range = new Range(shiftedPosition, marker.getStart());
         return range;
@@ -277,10 +270,8 @@ export default class HighlightSelector extends Plugin {
         if (!this.isNextTextLong(marker, chars)) {
             const commonAncestor = marker.getRange().getCommonAncestor();
             const nextSibling = commonAncestor.nextSibling;
-            console.log("nextSibling", nextSibling)
             if (nextSibling) {
                 const domNextSiblingCopy = this.modelElementToDomCopy(nextSibling);
-                console.log("domNextSiblingCopy", domNextSiblingCopy)
                 return domNextSiblingCopy;
             }
         }
@@ -289,7 +280,6 @@ export default class HighlightSelector extends Plugin {
 
     hasMultipleAncestors(marker) {
         const ancestors = marker.getRange().getContainedElement();
-        console.log("ANCESTORRRS", ancestors);
         return ancestors.length > 1;
     }
 
@@ -304,21 +294,14 @@ export default class HighlightSelector extends Plugin {
         const markerSpans = domAncestorCopy.querySelectorAll(".annotation");
         markerSpans.forEach(span => {
             //span.className = "";
-            console.log("MUI MUI MUI", span.textContent);
-            span.textContent = "HAHAHAHHHAHA"
+            //span.textContent = "HAHAHAHHHAHA"
         });
-
-        console.log("MARKER SPANS", markerSpans);
 
         //domAncestorCopy.textContent = "- Write a blog post about";
 
-        console.log("DOM CONVERTERed COPY", domAncestorCopy);
-
         // const range = new Range(shiftedStartPosition, shiftedEndPosition);
-        // console.log("CONTAINED ELEMENT", range.getContainedElement())
         //
         // for ( const item of range.getItems() ) {
-        //     console.log("CONTAININGMARKERITEMS", item);
         // }
     }
 
@@ -379,11 +362,8 @@ export default class HighlightSelector extends Plugin {
 
         const domRoot = this.getRefinementText(marker);
 
-        console.log(marker)
         //this.getElementContainingMarker(marker,charsBefore);
-        const yo = this.getTextSnippet(marker, charsBefore);
-
-        console.log("YO", yo);
+        //const yo = this.getTextSnippet(marker, charsBefore);
 
         const rangeBefore = this.getRangeBeforeMarker(marker, charsBefore, true);
 
@@ -391,43 +371,13 @@ export default class HighlightSelector extends Plugin {
 
         const viewRangeMarker = editor.editing.mapper.toViewRange(marker.getRange())
 
-        console.log("RANGE COMPARE", rangeBefore, viewRangeBefore)
-
-        for ( const item of viewRangeMarker.getItems() ) {
-            console.log("VIEW RANGE MARKER", domConverter.mapViewToDom(item));
-        }
-
-
-        for ( const item of viewRangeBefore.getItems() ) {
-           console.log("UIUIUIU", item)
-
-            console.log("VIEW RANGE BEFORE", domConverter.mapViewToDom(item));
-        }
-
-
         for ( const item of rangeBefore.getItems() ) {
             const viewElement =  editor.editing.mapper.toViewElement(item);
-
-
-            console.log("OHO", item, viewElement);
-            console.log("AHA", domConverter.mapViewToDom(editor.editing.mapper.toViewElement(item)));
-            if (item.is( 'element' )) {
-                console.log("STRINGIFY", data.stringify(item));
-            }
-            if (viewElement) {
-                for ( const child of viewElement.getChildren() ) {
-                    console.log("CHILD", child)
-                }
-            }
-
         }
-        console.log("SDGASG")
         //
         // const content = getSelectedContent(editor.model, selection);
         //
         // let sHtmlSelection = this.editor.data.stringify(content);
-        //
-        // console.log(sHtmlSelection)
         return "content";
     }
 
@@ -437,22 +387,16 @@ export default class HighlightSelector extends Plugin {
 
         const endPosition = marker.getEnd();
 
-        console.log("endPosition", endPosition);
-
         let shiftedPosition = endPosition.getShiftedBy(endPosition.parent.maxOffset - endPosition.offset);
-        console.log("shiftedPositonAFTER", shiftedPosition);
         if (charsAfter + endPosition.offset > endPosition.parent.maxOffset) {
             // check if there is a element after
             if (endPosition.parent.nextSibling) {
-                console.log("NEXTSIBLING", endPosition.parent.nextSibling);
                 //shift position to element after
                 shiftedPosition = new Position(endPosition.root, [endPosition.parent.nextSibling.getPath()[0], 0])
                 // element is long!
                 if (shiftedPosition.parent.maxOffset >= charsAfter) {
                     shiftedPosition = shiftedPosition.getShiftedBy(charsAfter)
-                    console.log("YSHIFETERY", shiftedPosition)
                 } else {
-                    console.log("MAXIMAL SHIFT", shiftedPosition)
                     shiftedPosition = shiftedPosition.getShiftedBy(shiftedPosition.parent.maxOffset)
                 }
             }
@@ -475,7 +419,6 @@ export default class HighlightSelector extends Plugin {
     //             result.push("LINE_BREAK")
     //         }
     //     }
-    //     console.log("YEAHYOO", result);
     //     return result;
     // }
 
@@ -485,8 +428,6 @@ export default class HighlightSelector extends Plugin {
         const data = this.editor.data;
         const rangeAfter = this.getRangeAfterMarker(marker, charsAfter);
 
-        console.log("rangeAfter", rangeAfter)
-
         let selection;
 
         editor.model.change(writer => {
@@ -495,7 +436,6 @@ export default class HighlightSelector extends Plugin {
         } );
 
         const content = getSelectedContent(editor.model, selection);
-        console.log("getTEXTAFTER", content, data.stringify(content));
         return content;
     }
 
@@ -511,10 +451,7 @@ export default class HighlightSelector extends Plugin {
             selection = writer.createSelection(range);
         } );
 
-        console.log("SELECTION", editor.model, selection);
         const content = getSelectedContent(editor.model, selection);
-        console.log("getSurrounding", content, data.stringify(content));
-        console.log("MARKERSSSS", content.markers)
         for ( const child of content.getChildren() ) {
             console.log(child)
         }
@@ -524,15 +461,12 @@ export default class HighlightSelector extends Plugin {
 
     // getMarkerTextPlusSurroundingText(marker) {
     //     const editor = this.editor;
-    //     console.log("YO");
     //     const result = [];
     //     const markerRange = marker.getRange();
     //     const range = new Range(marker.getStart().getShiftedBy(-20), marker.getEnd().getShiftedBy(20));
     //
     //     const liveRange = LiveRange.fromRange(range);
-    //     console.log(liveRange)
     //     for ( const item of liveRange.getItems() ) {
-    //         console.log(item)
     //         if (item.is("textProxy")) {
     //             result.push(item.data);
     //         }
@@ -670,7 +604,6 @@ export default class HighlightSelector extends Plugin {
         const editor = this.editor;
         editor.editing.view.on( 'render', () => {
             // Rendering to the DOM is complete.
-            console.log("RENDERING DONE");
             callback();
         } );
     }
@@ -678,7 +611,6 @@ export default class HighlightSelector extends Plugin {
     setOnChangeData(callback) {
         const editor = this.editor;
         editor.model.document.on( 'change', () => {
-            console.log("CHANGED DATA");
             callback();
         } );
     }
@@ -698,7 +630,6 @@ export default class HighlightSelector extends Plugin {
     setOnUpdateMarkers(callback) {
         const editor = this.editor;
         editor.model.markers.on('update', (eventInfo, marker, oldRange, newRange) => {
-            console.log("UPDATE MARKERS", eventInfo, marker, oldRange, newRange);
            callback();
         });
     }
@@ -759,12 +690,10 @@ export default class HighlightSelector extends Plugin {
             const [ , annotationType, annotationId, userId ] = this.currentSelectedMarker.split(':');
             this.unsetCurrentSelectedCard(annotationType, annotationId, userId);
             this.update(annotationType, annotationId, userId);
-            console.log("RESET DONE")
         }
 
         // set new marker
         if (!isSelected && this.currentSelectedMarker !== annotationIdentifier) {
-            console.log("SET SELECTED MARKER", annotationIdentifier)
             this.currentSelectedMarker = annotationIdentifier;
             this.update(annotationType, id, user);
             return id;

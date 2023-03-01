@@ -289,7 +289,6 @@ function App() {
             // infer intent from comment
             try {
                 const intentResult = await detectIntent(text);
-                console.log("INTENT RECOGNIZED", intentResult);
 
                 // get marked text from editor
                 const marker = getMarker(id, comment.data.user.name);
@@ -354,19 +353,16 @@ function App() {
 
         const naivePrompt = input + ": " + markedText;
 
-        console.log("PROMPT", naivePrompt);
         return  naivePrompt;
     }
 
     const toolIntelligence = async (id, type, marker, promptInput = null) => {
-        console.log("toolIntelligence called")
         try {
             // get marked text from editor
             const markedText = getMarkerText(marker);
 
             // display loading indicator
             const loading = () => {
-                console.log("CALL LOADING")
                 sidebarDispatch({
                     type: 'setIsLoading',
                     payload: {
@@ -411,7 +407,6 @@ function App() {
                             // result.prediction = result.prediction.slice(markedText.length)
                             // const firstCharPunctuation = result.prediction.search(/[.,\/#!$%\^&\*;:{}=\-_`~()]/)
                             // if (firstCharPunctuation === 0) {
-                            //     console.log("CUT OFF PUNCT")
                             //     result.prediction = result.prediction.slice(1)
                             // }
                             logger(LoggerEvents.OPEN_AI_RESULT, {"cardId": id, "cardType": type, "result": result});
@@ -423,7 +418,6 @@ function App() {
                 case CardType.AI_PROMPT:
                     const promptMethod = () => {
                         prompt(promptInput).then(result => {
-                            console.log(result)
                             logger(LoggerEvents.OPEN_AI_RESULT, {"cardId": id, "cardType": type, "result": result});
                             addAiResult(id, getOpenAIResponse(result));
                         });
@@ -624,7 +618,6 @@ function App() {
     const onMarkerChange = (deletionPosition, cardType, id, user, reactSidebarState) => {
         if (deletionPosition) {
             const card = reactSidebarState && reactSidebarState.cards[id];
-            console.log("AJBALFJKsBASF", card)
             removeSuggestion(card);
             highlightSelector.remove(cardType, id, user);
             updateCardRects();
@@ -681,7 +674,6 @@ function App() {
 
     const removeSuggestion = (card) => {
         if (card && card.suggestion) {
-            console.log("GONNA REMOVE YO")
             highlightSelector.remove("suggestion", card.suggestion.id, card.suggestion.user)
         }
     }

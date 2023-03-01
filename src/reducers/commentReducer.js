@@ -21,7 +21,6 @@ function commentReducer(state, action) {
     let tempComment;
     let replyIndex;
     let userIndex;
-    console.log(state, action);
 
     switch (action.type) {
         case 'postComment':

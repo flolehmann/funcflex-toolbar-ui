@@ -108,7 +108,6 @@ const AnnotationCard = forwardRef((props, ref) => {
 
     const select = () => {
         if (!selected) {
-            console.log("SELECT CARD", type, id, userName)
             logger(LoggerEvents.CARD_SELECT, {"cardId": id, "cardType": type});
             csc.setCurrentSelectedCard(type, id, userName);
             selectHandler(id);
@@ -131,7 +130,6 @@ const AnnotationCard = forwardRef((props, ref) => {
     }
 
     const addSuggestionMarkerAtRange = (range, user) => {
-        console.log("RANGE", range, "USER", user)
         return csc.addSuggestionMarkerAtRange(range, user);
     }
 
@@ -186,7 +184,6 @@ const AnnotationCard = forwardRef((props, ref) => {
         { appendButton }
         { type !== CardType.AI_EXTEND && replaceButton /* display only append button for extend/continue text */}
         <CopyToClipboard copyText={aiSuggestion} handleClick={() => {
-            console.log(id, userName)
             const marker = csc.getMarker(type, id, userName);
             const markedText = csc.getMarkedText(marker);
             logger(LoggerEvents.SUGGESTION_COPY_TO_CLIPBOARD,
@@ -255,7 +252,6 @@ const AnnotationCard = forwardRef((props, ref) => {
     }
 
     if (type === CardType.AI_PROMPT && !isPromptSent) {
-        console.log("AI_PROMPT", card)
         cardContent = <>
                 <Card.Title>
                     <div className={"card-info-left"}>

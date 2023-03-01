@@ -9,6 +9,8 @@ services:
   # builds the frontend
   collab-writing-with-ai-frontend_toolset:
     container_name: collab-writing-with-ai-frontend_toolset
+    env_file:
+      - .env
     environment:
       - PUBLIC_URL=/collab-writing-with-ai-toolset
     build:
@@ -27,7 +29,7 @@ services:
     container_name: collab-writing-with-ai-nginx_toolset
     image: nginx
     ports:
-      - 8002:80
+      - 8013:80
     volumes:
       - ./build/:/ui/build
       - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf
