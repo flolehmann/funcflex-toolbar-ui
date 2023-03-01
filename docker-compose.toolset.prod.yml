@@ -1,0 +1,37 @@
+version: '3.7'
+networks:
+  outside:
+    external:
+      name: studyctrl-network
+  inside:
+    driver: bridge
+services:
+  # builds the frontend
+  collab-writing-with-ai-frontend_toolset:
+    container_name: collab-writing-with-ai-frontend_toolset
+    environment:
+      - PUBLIC_URL=/collab-writing-with-ai-toolset
+    build:
+      context: ./
+      dockerfile: Dockerfile.prod
+    networks:
+      - inside
+    volumes:
+      - ./build/:/ui/build
+      - ./config:/ui/config
+      - ./public:/ui/public
+      - ./scripts/:/ui/scripts
+      - ./src/:/ui/src
+  # serves the frontend
+  collab-writing-with-ai-nginx_toolset:
+    container_name: collab-writing-with-ai-nginx_toolset
+    image: nginx
+    ports:
+      - 8002:80
+    volumes:
+      - ./build/:/ui/build
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - collab-writing-with-ai-frontend_toolset
+    networks:
+      - inside
