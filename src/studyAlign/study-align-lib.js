@@ -26,13 +26,17 @@ class StudyAlignLib {
         options.headers["Content-type"] = "application/json";
     }
     setLoggerHeaders(options) {
-        const loggerKey = this.readLoggerKey();
-        if (loggerKey) {
-            options.headers["Studyalign-Logger-Key"] = loggerKey;
+        if (this.loggerKey) {
+            options.headers["Studyalign-Logger-Key"] = this.loggerKey;
         }
         options.headers["Content-type"] = "application/json";
     }
     request(options) {
+        const encodeParams = (data) => {
+            return Object.keys(data).map((key) => {
+                return encodeURIComponent(key) + '=' + encodeURIComponent(data[key]);
+            }).join('&');
+        };
         return new Promise((resolve, reject) => {
             let url = this.apiUrl + "/" + options.path;
             let xhr = new XMLHttpRequest();
@@ -77,35 +81,289 @@ class StudyAlignLib {
                     xhr.setRequestHeader(key, options.headers[key]);
                 });
             }
-            if (options.method === "GET") {
+            if (options.method === "GET" || options.method === "DELETE") {
                 let params = options.params;
                 let encodedParams = "";
                 if (params && typeof params === 'object') {
-                    encodedParams = Object.keys(params).map((key) => {
-                        return encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
-                    }).join('&');
+                    encodedParams = encodeParams(params);
                 }
                 xhr.send(encodedParams);
             }
-            if (options.method === "POST") {
-                xhr.send(JSON.stringify(options.body));
+            if (options.method === "POST" || options.method === "PATCH") {
+                xhr.send(options.formData ? encodeParams(options.body) : JSON.stringify(options.body));
             }
         });
     }
-    getStudy() {
+    basicCreate(path, data) {
+        let options = {
+            method: "POST",
+            path: path,
+            headers: {}
+        };
+        this.setHeaders(options);
+        options.body = data;
+        return this.request(options);
+    }
+    basicRead(path) {
         const options = {
             method: "GET",
-            path: "studies/" + this.studyId,
+            path: path,
+            headers: {}
+        };
+        this.setHeaders(options);
+        return this.request(options);
+    }
+    basicUpdate(path, data) {
+        let options = {
+            method: "PATCH",
+            path: path,
+            headers: {}
+        };
+        this.setHeaders(options);
+        options.body = data;
+        return this.request(options);
+    }
+    basicDelete(path) {
+        let options = {
+            method: "DELETE",
+            path: path,
+            headers: {}
+        };
+        this.setHeaders(options);
+        const yo = this.request(options);
+        console.log(yo);
+        return yo;
+    }
+    // Admin related functions
+    userLogin(username, password) {
+        const options = {
+            method: "POST",
+            path: "users/login",
+            headers: {},
+            body: { username: username, password: password },
+            formData: true
+        };
+        options.headers["Content-type"] = "application/x-www-form-urlencoded";
+        return this.request(options);
+    }
+    userMe() {
+        return this.basicRead("users/me");
+    }
+    userRefreshToken() {
+        const options = {
+            method: "GET",
+            path: "users/refresh",
+            headers: {}
+        };
+        this.setHeaders(options, true);
+        return this.request(options);
+    }
+    getUsers() {
+        return this.basicRead("users");
+    }
+    getUser(userId) {
+        return this.basicRead("users/" + userId);
+    }
+    createUser(user) {
+        return this.basicCreate("users", user);
+    }
+    updateUser(userId, user) {
+        return this.basicUpdate("users/" + userId, user);
+    }
+    deleteUser(userId) {
+        return this.basicDelete("users/" + userId);
+    }
+    // ---- MAINLY FOR USE IN ADMIN FRONTEND ---- //
+    // Studies
+    getStudies() {
+        return this.basicRead("studies");
+    }
+    createStudy(study) {
+        return this.basicCreate("studies", study);
+    }
+    updateStudy(studyId, study) {
+        return this.basicUpdate("studies/" + studyId, study);
+    }
+    deleteStudy(studyId) {
+        return this.basicDelete("studies/" + studyId);
+    }
+    generateProcedureWithSteps(studyId, procedureScheme) {
+        return this.basicCreate("studies/" + studyId + "/procedures", procedureScheme);
+    }
+    getParticipants(studyId) {
+        return this.basicRead("studies/" + studyId + "/participants");
+    }
+    generateParticipants(studyId, amount) {
+        const options = {
+            method: "POST",
+            path: "studies/" + studyId + "/participants",
+            headers: {},
+            body: { amount: amount },
+            formData: true,
+        };
+        this.setHeaders(options);
+        return this.request(options);
+    }
+    populateSurveyParticipants(studyId) {
+        return this.basicRead("studies/" + studyId + "/survey-participants");
+    }
+    // Conditions
+    getConditionIds(studyId) {
+        const options = {
+            method: "GET",
+            path: "conditions/ids",
+            headers: {},
+            body: { study_id: studyId },
+            formData: true,
+        };
+        this.setHeaders(options);
+        return this.request(options);
+    }
+    getCondition(conditionId) {
+        return this.basicRead("conditions/" + conditionId);
+    }
+    getConditions(studyId) {
+        return this.basicRead("studies/" + studyId + "/conditions");
+    }
+    createCondition(condition) {
+        return this.basicCreate("conditions", condition);
+    }
+    updateCondition(conditionId, condition) {
+        return this.basicUpdate("conditions/" + conditionId, condition);
+    }
+    deleteCondition(conditionId) {
+        return this.basicDelete("conditions/" + conditionId);
+    }
+    getTasks(studyId) {
+        return this.basicRead("studies/" + studyId + "/tasks");
+    }
+    getTexts(studyId) {
+        return this.basicRead("studies/" + studyId + "/texts");
+    }
+    getQuestionnaires(studyId) {
+        return this.basicRead("studies/" + studyId + "/questionnaires");
+    }
+    getPauses(studyId) {
+        return this.basicRead("studies/" + studyId + "/pauses");
+    }
+    // Procedures
+    getProcedures(studyId) {
+        const options = {
+            method: "GET",
+            path: "procedures",
+            headers: {},
+            body: { study_id: studyId },
+            formData: true,
+        };
+        this.setHeaders(options);
+        return this.request(options);
+    }
+    // Participants
+    getParticipantsByProcedure(procedureId) {
+        const options = {
+            method: "GET",
+            path: "participants",
+            headers: {},
+            body: { procedure_id: procedureId },
+            formData: true,
+        };
+        this.setHeaders(options);
+        return this.request(options);
+    }
+    getParticipantById(participantId) {
+        return this.basicRead("participants/" + participantId);
+    }
+    endParticipantPause(participantToken) {
+        return this.basicRead("participants/" + participantToken + "/end-pause");
+    }
+    //Tasks
+    createTask(task) {
+        return this.basicCreate("tasks", task);
+    }
+    getTask(taskId) {
+        return this.basicRead("tasks/" + taskId);
+    }
+    updateTask(taskId, task) {
+        return this.basicUpdate("tasks/" + taskId, task);
+    }
+    deleteTask(taskId) {
+        return this.basicDelete("tasks/" + taskId);
+    }
+    //Texts
+    createText(text) {
+        return this.basicCreate("texts", text);
+    }
+    getText(textId) {
+        return this.basicRead("texts/" + textId);
+    }
+    updateText(textId, text) {
+        return this.basicUpdate("texts/" + textId, text);
+    }
+    deleteText(textId) {
+        return this.basicDelete("texts/" + textId);
+    }
+    //Questionnaires
+    createQuestionnaire(questionnaire) {
+        return this.basicCreate("questionnaires", questionnaire);
+    }
+    getQuestionnaire(questionnaireId) {
+        return this.basicRead("questionnaires/" + questionnaireId);
+    }
+    updateQuestionnaire(questionnaireId, questionnaire) {
+        return this.basicUpdate("questionnaires/" + questionnaireId, questionnaire);
+    }
+    deleteQuestionnaire(questionnaireId) {
+        return this.basicDelete("questionnaires/" + questionnaireId);
+    }
+    //Pauses
+    createPause(pause) {
+        return this.basicCreate("pauses", pause);
+    }
+    getPause(pauseId) {
+        return this.basicRead("pauses/" + pauseId);
+    }
+    updatePause(pauseId, pause) {
+        return this.basicUpdate("pauses/" + pauseId, pause);
+    }
+    deletePause(pauseId) {
+        return this.basicDelete("pauses/" + pauseId);
+    }
+    // ---- MAINLY FOR USE IN STUDY FRONTEND ---- //
+    //TODO: read condition config
+    //Study Frontend related functions
+    getStudy(studyId) {
+        const options = {
+            method: "GET",
+            path: "studies/" + (studyId || this.studyId),
         };
         return this.request(options);
     }
+    getStudySetupInfo(studyId) {
+        return this.basicRead("studies/" + studyId + "/setup-info");
+    }
     // Participation related methods
-    participate() {
+    getParticipant(participantToken) {
         const options = {
+            method: "GET",
+            path: "participants/token/" + participantToken,
+        };
+        return this.request(options);
+    }
+    participate(participantToken) {
+        let options = {
             method: "GET",
             path: "studies/" + this.studyId + "/participate"
         };
+        if (participantToken) {
+            options = {
+                method: "GET",
+                path: "studies/" + this.studyId + "/participate/" + participantToken
+            };
+        }
         return this.request(options);
+    }
+    setLoggerKey(loggerKey) {
+        this.loggerKey = loggerKey;
     }
     storeTokens(responseJson) {
         localStorage.setItem("tokens", JSON.stringify(responseJson));
@@ -137,15 +395,6 @@ class StudyAlignLib {
         };
         this.setHeaders(options, true);
         return this.request(options);
-    }
-    storeLoggerKey(key) {
-        localStorage.setItem("loggerKey", key);
-    }
-    readLoggerKey() {
-        return localStorage.getItem("loggerKey");
-    }
-    deleteLoggerKey() {
-        localStorage.removeItem("loggerKey");
     }
     me() {
         const options = {
@@ -366,9 +615,10 @@ class StudyAlignLib {
         const options = {
             method: "POST",
             path: "procedures/navigator",
-            headers: {}
+            headers: {
+                "Content-type": "application/json"
+            }
         };
-        this.setHeaders(options);
         options.body = {
             participant_token: participantToken,
             source: source,
@@ -378,5 +628,18 @@ class StudyAlignLib {
         return this.request(options);
     }
 }
+StudyAlignLib.getParamsFromURL = () => {
+    const url = new URL(window.location.href);
+    const studyId = url.searchParams.get("study_id");
+    const conditionId = url.searchParams.get("condition_id") || 1; // value from get parameter or 1 (default)
+    const loggerKey = url.searchParams.get("logger_key"); // needed for logging
+    const participantToken = url.searchParams.get("participant_token");
+    return {
+        studyId: studyId,
+        conditionId: conditionId,
+        loggerKey: loggerKey,
+        participantToken: participantToken
+    };
+};
 export default StudyAlignLib;
 //# sourceMappingURL=study-align-lib.js.map

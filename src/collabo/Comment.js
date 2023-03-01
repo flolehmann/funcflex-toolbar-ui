@@ -1,28 +1,14 @@
 import React, {useContext, useState, forwardRef, useEffect} from 'react';
 import {Button, ButtonGroup, Card, Col, Dropdown, Form, Image, OverlayTrigger, Row, Tooltip} from "react-bootstrap";
 import {CheckLg, ThreeDotsVertical} from 'react-bootstrap-icons';
-import {SidebarContext, CommentStatus, LoggerContext, UserContext} from "../App";
+import {SidebarContext, CardStatus, LoggerContext, UserContext} from "../App";
 import CommentForm from "./CommentForm/CommentForm";
 import './Comment.css';
 import AiRefinement from "./AiRefinement";
 import CopyToClipboard from "./CopyToClipboard";
 import {LoggerEvents} from "../logger/logger";
+import {dateHelper} from "../utils/Utils";
 
-const dateHelper = (date) => {
-    const formatNumber = (number) => {
-        return number.toLocaleString('en-US', {
-            minimumIntegerDigits: 2,
-            useGrouping: false
-        })
-    };
-
-    const [month, day, year] = [formatNumber(date.getMonth() + 1), formatNumber(date.getDate()), date.getFullYear()];
-    const [hour, minutes, seconds] = [formatNumber(date.getHours()), formatNumber(date.getMinutes()), formatNumber(date.getSeconds())];
-
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-    return hour + ":" + minutes + " " + day + " " + months[month-1];
-};
 
 const CustomOptionToggle = React.forwardRef(({ children, onClick }, ref) => (
     <Button variant="outline-light"
@@ -107,9 +93,9 @@ export default Comment = forwardRef((props, ref) => {
         }
     }
 
-    const replies = comment.replies.length === 0 ? null : comment.replies.map(reply => {
+    const replies = !(comment.replies && comment.replies.length === 0) ? null : comment.replies.map(reply => {
         // skip deleted replies
-        if (reply.state === CommentStatus.DELETED) {
+        if (reply.state === CardStatus.DELETED) {
             return null;
         }
         const date = dateHelper(new Date(reply.data.time));
@@ -153,7 +139,7 @@ export default Comment = forwardRef((props, ref) => {
             <Button onClick={ e => {
                 setAiRefinementShow(false);
                 const suggestionId = insertSuggestionAfterMarker(aiSuggestion);
-                csc.historyRecord(id, CommentStatus.SUGGESTION_INSERT_AFTER);
+                csc.historyRecord(id, CardStatus.SUGGESTION_INSERT_AFTER);
                 csc.addSuggestion(id, suggestionId, user);
                 setInsertionStatus(InsertionStatus.INSERT_AFTER);
                 const marker = csc.getMarker(id, commentUserName);
@@ -175,7 +161,7 @@ export default Comment = forwardRef((props, ref) => {
                     setAiRefinementShow(false);
                     const marker = csc.getMarker(id, commentUserName);
                     const markedText = csc.getMarkedText(marker);
-                    csc.historyRecord(id, CommentStatus.SUGGESTION_TAKE_OVER);
+                    csc.historyRecord(id, CardStatus.SUGGESTION_TAKE_OVER);
                     csc.replaceMarkedTextHtml(aiSuggestion, marker);
                     csc.setSelectedCommentId();
                     logger(LoggerEvents.SUGGESTION_TAKE_OVER,
@@ -190,7 +176,7 @@ export default Comment = forwardRef((props, ref) => {
                 logger(LoggerEvents.SUGGESTION_COPY_TO_CLIPBOARD,
                     {"text": aiSuggestion, "markedText": markedText},
                     {"commentId": id, "refinedByUser": aiSuggestionIsRefined, "suggestionId": suggestionId});
-                csc.historyRecord(id, CommentStatus.SUGGESTION_COPY_TO_CLIPBOARD);
+                csc.historyRecord(id, CardStatus.SUGGESTION_COPY_TO_CLIPBOARD);
             }}/>
         </div>
 
@@ -385,7 +371,7 @@ export default Comment = forwardRef((props, ref) => {
     </OverlayTrigger>
 
 
-    const typingNames = typing.map(user => user.name);
+    const typingNames = typing && typing.map(user => user.name);
     const typingNotification = typingNames && typingNames.length > 0 && <div className={"typing-names"}>
         {typingNames.join(", ")} typing ...
     </div>;

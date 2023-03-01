@@ -1,22 +1,46 @@
 .comment,
 .ai_extend {
-    background-color: rgba(255, 191, 0, 0.4);
+    /*background-color: rgba(255, 191, 0, 0.21);*/
+    background-color: #fff2c9;
 }
 
 .ai_summarize {
-    background-color: rgba(255, 0, 190, 0.4);
+    /*background-color: rgba(234, 0, 88, 0.20);*/
+    background-color: #fbccdd;
 }
 
 .comment.selected,
 .ai_extend.selected {
-    background-color: rgba(255, 191, 0, 0.9);
+    /*background-color: rgba(255, 191, 0, 0.68);*/
+    background-color: #ffd352;
 }
 
 .ai_summarize.selected {
-    background-color: rgba(50, 0, 190, 0.4);
+    /*background-color: rgba(234, 0, 88, 0.52);*/
+    background-color: #f47aa8;
 }
 
 .suggestion {
-    background-color: rgba(0, 217, 255, 0.22);
+    /*background-color: rgba(0, 217, 255, 0.20);*/
+    background-color: #9adbe6;
 }
 
+.ai_translate {
+    /*background-color: rgba(73, 200, 2, 0.23);*/
+    background-color: #d5f2c4;
+}
+
+.ai_translate.selected {
+    /*background-color: rgba(73, 200, 2, 0.55);*/
+    background-color: #9be174;
+}
+
+.ai_prompt {
+    /*background-color: rgba(0, 64, 255, 0.18);*/
+    background-color: #d1dcff;
+}
+
+.ai_prompt.selected {
+    /*background-color: rgba(0, 64, 255, 0.40);*/
+    background-color: #99b2ff;
+}

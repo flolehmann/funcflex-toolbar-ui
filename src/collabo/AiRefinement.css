@@ -1,3 +1,17 @@
+.original-text {
+    scroll-behavior: smooth;
+    max-height: 50vh;
+}
+
+.refinement-text {
+    display: flex;
+    align-items: center;
+}
+
+.refinement {
+    max-height: 50vh;
+}
+
 .warning {
     font-size: 0.8rem;
     color: #842029;

@@ -25,7 +25,7 @@ import {Button, Col, Container, Row} from "react-bootstrap";
 
 import Topbar from "./collabo/Topbar";
 import {Intent} from "./intelligence/Conversation";
-import {detectIntent, generate, summarize, translateDeEn} from "./intelligence/Apis";
+import {detectIntent, generate, prompt, summarize, translateDeEn} from "./intelligence/Apis";
 import {Emulator, Task, TaskTrigger, TimeConfig} from "./intelligence/Emulator";
 import useLogger, {LoggerEvents} from "./logger/logger";
 import {
@@ -91,16 +91,40 @@ const initialUserState = {
 }
 
 export const CardType = Object.freeze({
-    "COMMENT": "comment",
-    "AI_EXTEND": "ai_extend",
-    "AI_SUMMARIZE": "ai_summarize",
-    "AI_TRANSLATE": "ai_translate",
-    "AI_PROMPT": "ai_prompt"
+    "COMMENT": "COMMENT",
+    "AI_EXTEND": "AI_EXTEND",
+    "AI_SUMMARIZE": "AI_SUMMARIZE",
+    "AI_TRANSLATE": "AI_TRANSLATE",
+    "AI_PROMPT": "AI_PROMPT"
 });
 
-export const CommentStatus = Object.freeze({
+export const CardSkills = Object.freeze({
+    "AI_EXTEND": {
+       loading: "Extending...",
+       done: "Extended",
+        type :"Extend"
+    },
+    "AI_SUMMARIZE": {
+       loading: "Summarizing...",
+        done: "Summary",
+        type: "Summary"
+    },
+    "AI_TRANSLATE": {
+        loading: "Translating...",
+        done: "Translation",
+        type: "Translation"
+    },
+    "AI_PROMPT": {
+        loading: "Prompting...",
+        done: "Prompt",
+        type: "Prompt"
+    }
+});
+
+export const CardStatus = Object.freeze({
     "NEW": "NEW",
     "POSTED": "POSTED",
+    "LOADING": "LOADING",
     "CANCELLED": "CANCELLED",
     "APPROVED": "APPROVED",
     "DELETED": "DELETED",
@@ -157,7 +181,12 @@ function App() {
     const [sidebarState, sidebarDispatch] = useReducer(sidebarReducer, initialSidebarState);
     const [userState, userDispatch] = useReducer(userReducer, initialUserState);
 
-    const [isReady, studyAlignLib, logger] = useLogger("appLogger", "https://hciaitools.uni-bayreuth.de/study-align", 1);
+
+    const queryString = window.location.search;
+    const urlParams = new URLSearchParams(queryString);
+    const studyId = urlParams.has("study_id") ? urlParams.get("study_id") : 0;
+
+    const [isReady, studyAlignLib, logger] = useLogger("appLogger", "https://hciaitools.uni-bayreuth.de/study-align", studyId);
 
     const [wordCount, setWordCount] = useState(0);
     const [charCount, setCharCount] = useState(0);
@@ -203,74 +232,40 @@ function App() {
         }
         const user = userState.me;
         const id = highlightSelector.add(type, user.name, onMarkerChange);
-        const newExtendCard = {
+        const card = {
             type: type,
             id: id,
-            state: CommentStatus.NEW,
+            state: CardStatus.NEW,
             data: {
                 user: user,
                 date: Date.now()
             },
-            replies: [],
-            //deletedReplies: [],
-            typing: [],
+            isLoading: true,
+            ai: null,
             suggestion: null,
             history: [
                 {
-                    state: CommentStatus.NEW,
+                    state: CardStatus.NEW,
                     time: Date.now()
                 }
             ]
         }
+
         const cardRects = getCardRects();
         sidebarDispatch({
             type: 'addCard',
             payload: {
-                card: newExtendCard,
-                cardRects: cardRects
+                card: card,
+                cardRects: cardRects,
+                selectedCardId: CardType.AI_PROMPT ? id : null
             }
         });
         const marker = getMarker(type, id, user.name);
         const markedText = getMarkerText(marker);
-        logger(LoggerEvents.COMMENT_ADD, {"commentId": id, "comment": newExtendCard, "markedText": markedText});
-    }
-
-    const addComment = () => {
-        if (!highlightSelector) {
-            return;
+        logger(LoggerEvents.CARD_ADD, {"cardId": id, "type": type, "card": card, "markedText": markedText});
+        if (type !== CardType.AI_PROMPT) {
+            toolIntelligence(id, type, marker)
         }
-        const user = userState.me;
-        const id = highlightSelector.add("comment", user.name, onMarkerChange);
-        const newComment = {
-            type: CardType.COMMENT,
-            id: id,
-            state: CommentStatus.NEW,
-            data: {
-                user: user,
-                date: Date.now()
-            },
-            replies: [],
-            //deletedReplies: [],
-            typing: [],
-            suggestion: null,
-            history: [
-                {
-                    state: CommentStatus.NEW,
-                    time: Date.now()
-                }
-            ]
-        }
-        const cardRects = getCardRects(CardType.COMMENT);
-        sidebarDispatch({
-            type: 'addCard',
-            payload: {
-                card: newComment,
-                cardRects: cardRects
-            }
-        });
-        const marker = getMarker(id, user.name);
-        const markedText = getMarkerText(marker);
-        logger(LoggerEvents.COMMENT_ADD, {"commentId": id, "comment": newComment, "markedText": markedText});
     }
 
     const postComment = (id, text) => {
@@ -283,10 +278,10 @@ function App() {
             }
         });
         logger(LoggerEvents.COMMENT_POST, {"commentId": id, "comment": comment});
-        intelligence(id, text, comment);
+        commentIntelligence(id, text, comment);
     }
 
-    const intelligence = async (id, text, comment) => {
+    const commentIntelligence = async (id, text, comment) => {
         //const matches = parseMessage(text, "@agent");
         const matches = true;
         if (matches) {
@@ -354,6 +349,93 @@ function App() {
         }
     }
 
+    const buildPrompt = (marker, input) => {
+        const markedText = getMarkerText(marker);
+
+        const naivePrompt = input + ": " + markedText;
+
+        console.log("PROMPT", naivePrompt);
+        return  naivePrompt;
+    }
+
+    const toolIntelligence = async (id, type, marker, promptInput = null) => {
+        console.log("toolIntelligence called")
+        try {
+            // get marked text from editor
+            const markedText = getMarkerText(marker);
+
+            // display loading indicator
+            const loading = () => {
+                console.log("CALL LOADING")
+                sidebarDispatch({
+                    type: 'setIsLoading',
+                    payload: {
+                        id: id,
+                        isLoading: true
+                    }
+                });
+            };
+
+            const getOpenAIResponse = result => {return {prediction: result.choices[0].text}};
+
+            const timeConfig = new TimeConfig(0, 1, 1, 1000);
+            switch (type) {
+                case CardType.AI_SUMMARIZE:
+                    const summaryMethod = () => {
+                        const summaryResult = summarize(markedText).then(result => {
+                        // prompt(buildPrompt(marker, "summarize:")).then(result => {
+                        //     logger(LoggerEvents.OPEN_AI_RESULT, {"cardId": id, "cardType": type, "result": result});
+                            //addAiResult(id, getOpenAIResponse(result));
+                            logger(LoggerEvents.T5_SUMMARY_AI_RESULT, {"cardId": id, "cardType": type, "result": result});
+                            addAiResult(id, result);
+                        });
+                    };
+                    emulator.addTask(new Task(TaskTrigger.TIME, marker, type, loading, summaryMethod, timeConfig));
+                    break;
+                case CardType.AI_TRANSLATE:
+                    const translateMethod = () => {
+                        translateDeEn(markedText).then(result => {
+                        // prompt(buildPrompt(marker, "translate from german to english")).then(result => {
+                        //     logger(LoggerEvents.OPEN_AI_RESULT, {"cardId": id, "cardType": type, "result": result});
+                        //     addAiResult(id, getOpenAIResponse(result));
+                            logger(LoggerEvents.OPUS_TRANSLATE_AI_RESULT, {"cardId": id, "cardType": type, "result": result});
+                            addAiResult(id, result);
+                        });
+                    }
+                    emulator.addTask(new Task(TaskTrigger.TIME, marker, type, loading, translateMethod, timeConfig));
+                    break;
+                case CardType.AI_EXTEND:
+                    const extendMethod = () => {
+                        //generate(markedText).then(result => {
+                        prompt(buildPrompt(marker, "extend")).then(result => {
+                            // result.prediction = result.prediction.slice(markedText.length)
+                            // const firstCharPunctuation = result.prediction.search(/[.,\/#!$%\^&\*;:{}=\-_`~()]/)
+                            // if (firstCharPunctuation === 0) {
+                            //     console.log("CUT OFF PUNCT")
+                            //     result.prediction = result.prediction.slice(1)
+                            // }
+                            logger(LoggerEvents.OPEN_AI_RESULT, {"cardId": id, "cardType": type, "result": result});
+                            addAiResult(id, getOpenAIResponse(result));
+                        });
+                    }
+                    emulator.addTask(new Task(TaskTrigger.TIME, marker, type, loading, extendMethod, timeConfig));
+                    break;
+                case CardType.AI_PROMPT:
+                    const promptMethod = () => {
+                        prompt(promptInput).then(result => {
+                            console.log(result)
+                            logger(LoggerEvents.OPEN_AI_RESULT, {"cardId": id, "cardType": type, "result": result});
+                            addAiResult(id, getOpenAIResponse(result));
+                        });
+                    }
+                    emulator.addTask(new Task(TaskTrigger.TIME, marker, type, loading, promptMethod, timeConfig));
+                    break;
+            }
+        } catch (err) {
+            console.log("INTENT DETECTION FAILED", err);
+        }
+    }
+
     const editComment = (id, text) => {
         sidebarDispatch({
             type: 'editComment',
@@ -383,45 +465,45 @@ function App() {
         logger(LoggerEvents.COMMENT_CANCEL, {"commentId": id});
     }
 
-    const approveComment = (id) => {
+    const approveCard = (id) => {
         if (!highlightSelector) {
             return null;
         }
-        const comment = sidebarState.comments[id];
-        const user = comment.data.user.name;
+        const card = sidebarState.cards[id];
+        const user = card.data.user.name;
 
-        removeSuggestion(comment);
-        highlightSelector.remove("comment", id, user);
+        removeSuggestion(card);
+        highlightSelector.remove(card.type, id, user);
 
-        const commentRects = getCardRects(CardType.COMMENT);
+        //const cardRects = getCardRects(CardType.COMMENT);
         sidebarDispatch({
-            type: 'approveComment',
+            type: 'approveCard',
             payload: {
-                id: id,
-                commentRects: commentRects
+                id: id
             }
         });
     }
 
-    const deleteComment = (id) => {
+    const deleteCard = (id) => {
         if (!highlightSelector) {
             return null;
         }
-        const comment = sidebarState.comments[id];
-        const user = comment.data.user.name;
+        const deletedCard = sidebarState.cards[id];
+        const card = sidebarState.cards[id];
+        const user = card.data.user.name;
 
-        removeSuggestion(comment);
-        highlightSelector.remove("comment", id, user);
+        removeSuggestion(card);
+        highlightSelector.remove(deletedCard.type, id, user);
 
-        const commentRects = getCardRects(CardType.COMMENT);
+        const cardRects = getCardRects();
         sidebarDispatch({
-            type: 'deleteComment',
+            type: 'deleteCard',
             payload: {
                 id: id,
-                commentRects: commentRects
+                cardRects: cardRects
             }
         });
-        logger(LoggerEvents.COMMENT_DELETE, {"commentId": id});
+        logger(LoggerEvents.CARD_CLOSE, {"cardId": id, "cardType": card.type, "card": card});
     }
 
     const historyRecord = (id, commentStatus) => {
@@ -448,7 +530,7 @@ function App() {
         const replyId = nanoid();
         const reply = {
             id: replyId,
-            state: CommentStatus.POSTED,
+            state: CardStatus.POSTED,
             data: {
                 user: user,
                 text: text,
@@ -457,7 +539,7 @@ function App() {
             replies: [],
             history: [
                 {
-                    state: CommentStatus.POSTED,
+                    state: CardStatus.POSTED,
                     time: Date.now()
                 }
             ]
@@ -473,11 +555,21 @@ function App() {
         logger(LoggerEvents.REPLY_POST, {"commentId": id, "replyId": replyId, "reply": reply});
     }
 
+    const addAiResult = (id, data) => {
+        sidebarDispatch({
+            type: 'addAiResult',
+            payload: {
+                id: id,
+                ai: data
+            }
+        });
+    }
+
     const postAiReply = (id, text, user, ai) => {
         const replyId = nanoid();
         const reply = {
             id: replyId,
-            state: CommentStatus.POSTED,
+            state: CardStatus.POSTED,
             data: {
                 user: user,
                 text: text,
@@ -487,7 +579,7 @@ function App() {
             replies: [],
             history: [
                 {
-                    state: CommentStatus.POSTED,
+                    state: CardStatus.POSTED,
                     time: Date.now()
                 }
             ]
@@ -500,6 +592,7 @@ function App() {
                 reply: reply
             }
         });
+
         logger(LoggerEvents.REPLY_AI, {"commentId": id, "replyId": replyId, "reply": reply});
     }
 
@@ -528,11 +621,12 @@ function App() {
 
     // reactSidebarState is set via useEffect on highlightSelector to make it available
     // in callbacks from inside highlightSelector
-    const onMarkerChange = (deletionPosition, annotationType, id, user, reactSidebarState) => {
+    const onMarkerChange = (deletionPosition, cardType, id, user, reactSidebarState) => {
         if (deletionPosition) {
             const card = reactSidebarState && reactSidebarState.cards[id];
+            console.log("AJBALFJKsBASF", card)
             removeSuggestion(card);
-            highlightSelector.remove(annotationType, id, user);
+            highlightSelector.remove(cardType, id, user);
             updateCardRects();
         }
     }
@@ -543,7 +637,7 @@ function App() {
         }
         // DECOUPLING CARDS
         for (const property in CardType) {
-            highlightSelector.computeRects(CardType[property])
+            highlightSelector.computeRects(String(CardType[property]).toLowerCase())
         }
         let rects = highlightSelector.getFlattenedRects();
         return rects;
@@ -560,6 +654,12 @@ function App() {
     }
 
     const setSelectedCardId = (selectedCardId) => {
+        const card = sidebarState.cards[selectedCardId];
+
+        if (card) {
+            logger(LoggerEvents.MARKER_SELECT, {"cardId": card.id, "cardType": card.type});
+        }
+
         sidebarDispatch({
             type: 'selectCardMarker',
             payload: {
@@ -568,20 +668,21 @@ function App() {
         });
     }
 
-    const addSuggestion = (commentId, suggestionId, user) => {
+    const insertSuggestion = (cardId, suggestionId, user) => {
         sidebarDispatch({
-            type: 'addSuggestion',
+            type: 'insertSuggestion',
             payload: {
-                commentId: commentId,
+                cardId: cardId,
                 suggestionId: suggestionId,
                 user: user
             }
         });
     }
 
-    const removeSuggestion = (comment) => {
-        if (comment && comment.suggestion) {
-            highlightSelector.remove("suggestion", comment.suggestion.id, comment.suggestion.user.name)
+    const removeSuggestion = (card) => {
+        if (card && card.suggestion) {
+            console.log("GONNA REMOVE YO")
+            highlightSelector.remove("suggestion", card.suggestion.id, card.suggestion.user)
         }
     }
 
@@ -620,6 +721,34 @@ function App() {
         return highlightSelector.getMarkerText(marker);
     }
 
+    const getOriginalTextDom = (marker) => {
+        if (!highlightSelector) {
+            return;
+        }
+        return highlightSelector.getOriginalTextDom(marker);
+    }
+
+    const getTextBeforeMarker = (marker, charsBefore = 50) => {
+        if (!highlightSelector) {
+            return;
+        }
+        return highlightSelector.getTextBeforeMarker(marker, charsBefore);
+    }
+
+    const getTextAfterMarker = (marker, charsAfter = 50) => {
+        if (!highlightSelector) {
+            return;
+        }
+        return highlightSelector.getTextAfterMarker(marker, charsAfter);
+    }
+
+    const getMarkerTextPlusSurroundingText = (marker, charsSurrounding = 50) => {
+        if (!highlightSelector) {
+            return;
+        }
+        return highlightSelector.getMarkerTextPlusSurroundingText(marker, charsSurrounding);
+    }
+
     const replaceMarkedText = (text, marker) => {
         if (!highlightSelector) {
             return;
@@ -652,14 +781,14 @@ function App() {
         if (!highlightSelector) {
             return;
         }
-        highlightSelector.setCurrentSelectedAnnotation(type, id, user);
+        highlightSelector.setCurrentSelectedCard(type, id, user);
     }
 
     const unsetCurrentSelectedCard = (type, id, user, refresh = false) => {
         if (!highlightSelector) {
             return;
         }
-        highlightSelector.unsetCurrentSelectedAnnotation(type, id, user, true);
+        highlightSelector.unsetCurrentSelectedCard(type, id, user, true);
     }
 
     const setOnRender = () => {
@@ -749,7 +878,8 @@ function App() {
     const extendIcon = <FloatingToolbarIcon tooltipText={"Extend text"}
                                             onMouseDown={() => {
                                                 setShowFloatingToolbar(false);
-                                                addAiCard(CardType.AI_EXTEND)}}>
+                                                addAiCard(CardType.AI_EXTEND);
+                                            }}>
         <ArrowsExpand />
     </FloatingToolbarIcon>
 
@@ -764,14 +894,14 @@ function App() {
     const translateIcon = <FloatingToolbarIcon tooltipText={"Translate text"}
                                                onMouseDown={() => {
                                                    setShowFloatingToolbar(false);
-                                                   addComment()}}>
+                                                   addAiCard(CardType.AI_TRANSLATE)}}>
         <Translate />
     </FloatingToolbarIcon>
 
     const promptIcon = <FloatingToolbarIcon tooltipText={"Prompt function"}
                                             onMouseDown={() => {
                                                 setShowFloatingToolbar(false);
-                                                addComment()}}>
+                                                addAiCard(CardType.AI_PROMPT)}}>
         <InputCursorText />
     </FloatingToolbarIcon>
 
@@ -923,23 +1053,29 @@ function App() {
                                             cancelComment: cancelComment,
                                             postComment: postComment,
                                             editComment: editComment,
-                                            approveComment: approveComment,
-                                            deleteComment: deleteComment,
+                                            approveCard: approveCard,
+                                            deleteCard: deleteCard,
                                             historyRecord: historyRecord,
                                             postReply: postReply,
                                             editReply: editReply,
                                             deleteReply: deleteReply,
                                             setSelectedCardId: setSelectedCardId,
-                                            addSuggestion: addSuggestion,
+                                            insertSuggestion: insertSuggestion,
                                             setCurrentSelectedCard: setCurrentSelectedCard,
                                             unsetCurrentSelectedCard: unsetCurrentSelectedCard,
                                             getMarker: getMarker,
                                             getMarkedText: getMarkerText,
+                                            getOriginalTextDom: getOriginalTextDom,
+                                            getTextBeforeMarker: getTextBeforeMarker,
+                                            getTextAfterMarker: getTextAfterMarker,
+                                            getMarkerTextPlusSurroundingText: getMarkerTextPlusSurroundingText,
                                             replaceMarkedText: replaceMarkedText,
                                             replaceMarkedTextHtml: replaceMarkedTextHtml,
                                             insertAfterMarkedText: insertAfterMarkedText,
                                             createParagraphWithText: createParagraphWithText,
-                                            addSuggestionMarkerAtRange: addSuggestionMarkerAtRange
+                                            addSuggestionMarkerAtRange: addSuggestionMarkerAtRange,
+                                            toolIntelligence: toolIntelligence,
+                                            buildPrompt: buildPrompt
                                         }}>
                                             <Sidebar sidebarOffsetTop={sidebarOffsetTop} cardRectsLength={Object.keys(sidebarState.cardRects).length}/>
                                         </SidebarContext.Provider>

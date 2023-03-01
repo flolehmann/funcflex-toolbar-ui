@@ -1,7 +1,7 @@
 import React, {useCallback, useContext, useEffect, useRef, useState} from 'react';
-import Comment from "./Comment";
 import './Sidebar.css';
 import {CardType, SidebarContext} from "../App";
+import AnnotationCard from "../cards/Card";
 
 function Sidebar(props) {
 
@@ -22,6 +22,7 @@ function Sidebar(props) {
     const sidebarOffsetTop = props.sidebarOffsetTop;
 
     useEffect(() => {
+        console.log("SIDEBAR SORT UPDATE")
         // sort cards by card's top position
         const sorted = Object.entries(sidebarState.cardRects)
         .sort(([,a],[,b]) => {
@@ -80,8 +81,6 @@ function Sidebar(props) {
 
     const sortedCardIdsBeforeSelected = sortedCardsIds.splice(0, selectedCardIndex);
     const max = sortedCardIdsBeforeSelected.length - 1;
-
-    console.log("sortedCardsRects", sortedCardsRects);
 
     // if selected card, take cardIds before selected card and iterate backwards
     if (isCardSelected && sidebarState.cardRects[selectedCard] && sidebarState.cardRects[sortedCardIdsBeforeSelected[max]]) {
@@ -142,10 +141,11 @@ function Sidebar(props) {
             const marker = csc.getMarker(cards[id].type, cards[id].id, cards[id].data.user.name);
 
             if (marker) {
-                const card = <Comment
+                const card = <AnnotationCard
                     ref={onRefChangeCard}
                     key={id}
-                    comment={cards[id]}
+                    card={cards[id]}
+                    originalText={csc.getOriginalTextDom(marker)}
                     markerText={csc.getMarkedText(marker)}
                     selected={selectedCard === id}
                     selectedCard={selectedCard}
@@ -190,12 +190,18 @@ function Sidebar(props) {
 
         const marker = csc.getMarker(cards[id].type, id, cards[id].data.user.name);
 
+        console.log(marker)
+
         if (marker) {
-            const card = <Comment
+            const card = <AnnotationCard
                 ref={onRefChangeCard}
                 key={id}
-                comment={cards[id]}
+                card={cards[id]}
+                originalText={csc.getOriginalTextDom(marker)}
+                //textBeforeMarker={csc.getTextBeforeMarker(marker, 80)}
                 markerText={csc.getMarkedText(marker)}
+                //textAfterMarker={csc.getTextAfterMarker(marker, 80)}
+                //textSurroundingMarker={csc.getMarkerTextPlusSurroundingText(marker, 80)}
                 selected={selectedCard === id}
                 selectedCard={selectedCard}
                 cardTop={cardTop}
@@ -212,6 +218,8 @@ function Sidebar(props) {
     if (isCardSelected) {
         cardsList = [...cardsList, ...priorSelectedCards];
     }
+
+    console.log("CARDSLIST", cardsList)
 
     return (
       <div className={"sidebar"}>

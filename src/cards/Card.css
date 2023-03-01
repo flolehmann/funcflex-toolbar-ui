@@ -1,4 +1,4 @@
-.comment-card {
+.sidebar-card {
     z-index: 1000;
     width: 75%;
     border: 1px solid #eee;
@@ -13,48 +13,48 @@
     margin-bottom: .5rem;
 }
 
-.comment-info-left {
+.card-info-left {
     display: flex;
     flex-direction: row;
     justify-content: flex-start;
     align-items: center;
 }
 
-.comment-info-right {
+.card-info-right {
     display: flex;
     flex-direction: row;
     justify-content: flex-start;
     align-items: center;
 }
 
-.comment-info-right button {
+.card-info-right button {
     margin-left: 0.5rem;
 }
 
-.comment-card .avatar {
+.sidebar-card .avatar {
     width: 2.5rem;
     height: 2.5rem;
 }
 
-.comment-card .avatar img {
+.sidebar-card .avatar img {
     width: 100%;
     height: 100%;
 }
 
-.comment-card .user-data {
-    margin-left: 0.5rem;
+.sidebar-card .user-data {
+    margin-left: 0;
 }
 
-.comment-card .user-name {
+.sidebar-card .user-name {
     font-size: 1rem;
 }
 
-.comment-card .comment-date {
+.sidebar-card .card-date {
     font-size: 0.85rem;
     font-weight: 400;
 }
 
-.comment-card.selected {
+.sidebar-card.selected {
     border: 1px solid #fff;
     box-shadow: 0px 0px 5px 0px rgba(166,166,166,0.75);
     -webkit-box-shadow: 0px 0px 5px 0px rgba(166,166,166,0.75);
@@ -120,18 +120,17 @@
 .ai-text {
     position: relative;
     margin-top: 0.25rem;
-    padding: 0.25rem 0.5rem 0.5rem 0.5rem;
+    padding: 0;
     font-family: "serif";
     font-size: 0.9rem;
 
-    max-height: 9.2rem;
+    max-height: 8.5rem;
     overflow: hidden;
 
-    border-left: 3px solid #78acff;
+    border: none;
     margin-bottom: 0.5rem;
     overflow: hidden;
     line-height: 1.25rem;
-
 }
 
 .ai-text:after {
@@ -140,8 +139,8 @@
     position: absolute;
     bottom: 0;
     right: 0;
-    width: 75%;
-    height: 1.5em;
+    width: 85%;
+    height: 1.1em;
     background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1) 50%);
 }
 

@@ -1,4 +1,4 @@
-import {CommentStatus} from "../App";
+import {CardStatus} from "../App";
 
 function commentReducer(state, action) {
     const id = action.payload.id || action.payload.commentId || null;
@@ -25,9 +25,9 @@ function commentReducer(state, action) {
 
     switch (action.type) {
         case 'postComment':
-            comment.state = CommentStatus.POSTED
+            comment.state = CardStatus.POSTED
             comment.history = [...comment.history, {
-                state: CommentStatus.POSTED,
+                state: CardStatus.POSTED,
                 time: Date.now()
             }];
             return { ...state,
@@ -43,9 +43,9 @@ function commentReducer(state, action) {
             };
         case 'cancelComment':
             tempComment = { ...cards[id] };
-            tempComment.state = CommentStatus.CANCELLED;
+            tempComment.state = CardStatus.CANCELLED;
             tempComment.history = [...tempComment.history, {
-                state: CommentStatus.CANCELLED,
+                state: CardStatus.CANCELLED,
                 time: Date.now()
             }];
             return { ...state,
@@ -56,9 +56,9 @@ function commentReducer(state, action) {
             };
         case 'approveComment':
             tempComment = { ...cards[id] };
-            tempComment.state = CommentStatus.APPROVED;
+            tempComment.state = CardStatus.APPROVED;
             tempComment.history = [...tempComment.history, {
-                state: CommentStatus.APPROVED,
+                state: CardStatus.APPROVED,
                 time: Date.now()
             }];
             return { ...state,
@@ -69,9 +69,9 @@ function commentReducer(state, action) {
             };
         case 'deleteComment':
             tempComment = { ...cards[id] };
-            tempComment.state = CommentStatus.DELETED;
+            tempComment.state = CardStatus.DELETED;
             tempComment.history = [...tempComment.history, {
-                state: CommentStatus.DELETED,
+                state: CardStatus.DELETED,
                 time: Date.now()
             }];
             return { ...state,
@@ -130,9 +130,9 @@ function commentReducer(state, action) {
             tempComment = { ...cards[id] };
             replyIndex = tempComment.replies.findIndex(reply => reply.id === replyId);
             const deletedReply = { ...tempComment.replies[replyIndex] };
-            deletedReply.state = CommentStatus.DELETED;
+            deletedReply.state = CardStatus.DELETED;
             deletedReply.history = [...deletedReply.history, {
-                state: CommentStatus.DELETED,
+                state: CardStatus.DELETED,
                 time: Date.now()
             }];
             tempComment.replies[replyIndex] = deletedReply;

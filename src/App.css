@@ -109,6 +109,10 @@ html, body {
   margin: 0 auto;
 }
 
+.ck.ck-editor__editable_inline {
+  padding: 1.5rem 2rem !important;
+}
+
 /* Set the default font for the "page" of the content. */
 .document-editor .ck-content,
 .document-editor .ck-heading-dropdown .ck-list .ck-button__label {

@@ -74,6 +74,43 @@ export default function useLogger(loggerName, apiUrl, studyId) {
                 case LoggerEvents.TEXT_STATS:
                     await sal.logGenericInteraction(conditionId, eventName, data, timestamp, metaData);
                     break;
+                case LoggerEvents.CARD_ADD:
+                    await sal.logGenericInteraction(conditionId, eventName, data, timestamp, metaData);
+                    break;
+                case LoggerEvents.CARD_SELECT:
+                    await sal.logGenericInteraction(conditionId, eventName, data, timestamp, metaData);
+                    break;
+                case LoggerEvents.CARD_CLOSE:
+                    await sal.logGenericInteraction(conditionId, eventName, data, timestamp, metaData);
+                    break;
+                case LoggerEvents.CARD_APPROVE:
+                    await sal.logGenericInteraction(conditionId, eventName, data, timestamp, metaData);
+                    break;
+                case LoggerEvents.MARKER_SELECT:
+                    await sal.logGenericInteraction(conditionId, eventName, data, timestamp, metaData);
+                    break;
+                case LoggerEvents.SUGGESTION_VIEWDETAIL:
+                    await sal.logGenericInteraction(conditionId, eventName, data, timestamp, metaData);
+                    break;
+                case LoggerEvents.SUGGESTION_CLOSEDETAIL:
+                    await sal.logGenericInteraction(conditionId, eventName, data, timestamp, metaData);
+                    break;
+                case LoggerEvents.PROMPT_KEY_DOWN:
+                    await sal.logKeyboardInteraction(conditionId, eventName, data, timestamp, metaData);
+                    //await sal.logGenericInteraction(conditionId, eventName, data, timestamp, metaData);
+                    break;
+                case LoggerEvents.PROMPT_SEND:
+                    await sal.logGenericInteraction(conditionId, eventName, data, timestamp, metaData);
+                    break;
+                case LoggerEvents.OPEN_AI_RESULT:
+                    await sal.logGenericInteraction(conditionId, eventName, data, timestamp, metaData);
+                    break;
+                case LoggerEvents.T5_SUMMARY_AI_RESULT:
+                    await sal.logGenericInteraction(conditionId, eventName, data, timestamp, metaData);
+                    break;
+                case LoggerEvents.OPUS_TRANSLATE_AI_RESULT:
+                    await sal.logGenericInteraction(conditionId, eventName, data, timestamp, metaData);
+                    break;
                 case LoggerEvents.COMMENT_ADD:
                     await sal.logGenericInteraction(conditionId, eventName, data, timestamp, metaData);
                     break;
@@ -142,10 +179,10 @@ export default function useLogger(loggerName, apiUrl, studyId) {
 
     function dispatch(eventName, data, metaData = {}) {
         if (conditionId === 0) {
-            console.warn("Cannot useLogger since no condition_id has been provided.");
+            console.warn("Cannot useLogger since no condition_id has been provided.", eventName, data, metaData);
         }
         else if (!sal.readLoggerKey()) {
-            console.warn("Cannot useLogger since no logger_key has been provided.");
+            console.warn("Cannot useLogger since no logger_key has been provided.", eventName, data, metaData);
         } else {
             logger(eventName, data, metaData);
         }
@@ -174,6 +211,24 @@ export const LoggerEvents = Object.freeze({
     "EDITOR_REDO": "EDITOR_REDO",
     "TEXT_STATS": "TEXT_STATS", //charCount, wordCount
     // Experiment specific events
+    //Annotation specific events
+    "CARD_ADD": "CARD_ADD", // registers any added card type, i.e. extend, summarize, translate, prompt
+    "CARD_SELECT": "CARD_SELECT", // card is selected
+    "CARD_CLOSE": "CARD_CLOSE", // card is closed / deleted
+    "CARD_APPROVE": "CARD_APPROVE", // approved / after appending suggestion
+    "MARKER_SELECT": "MARKER_SELECT", // highlighted text is selected => selects card
+    "SUGGESTION_VIEWDETAIL": "SUGGESTION_VIEWDETAIL", // view modal for diff view
+    "SUGGESTION_CLOSEDETAIL": "SUGGESTION_CLOSEDETAIL", // close modal for diff view
+    "PROMPT_KEY_DOWN": "PROMPT_KEY_DOWN", // editing a prompt
+    "PROMPT_SEND": "PROMPT_SEND", // sending a prompt
+    "OPEN_AI_RESULT": "OPEN_AI_RESULT", // result of the openAI api
+    "T5_SUMMARY_AI_RESULT": "T5_SUMMARY_AI_RESULT", // result of the T5 api
+    "OPUS_TRANSLATE_AI_RESULT": "OPUS_TRANSLATE_AI_RESULT", // result of the opus mt translation
+    "SUGGESTION_INSERT_AFTER": "SUGGESTION_INSERT_AFTER",
+    "SUGGESTION_TAKE_OVER": "SUGGESTION_TAKE_OVER",
+    "SUGGESTION_COPY_TO_CLIPBOARD": "SUGGESTION_COPY_TO_CLIPBOARD",
+    "FINAL_TEXT": "FINAL_TEXT",
+    // Conversational UI Legacy Events:
     "COMMENT_ADD": "COMMENT_ADD",
     "COMMENT_POST": "COMMENT_POST",
     "COMMENT_CANCEL": "COMMENT_CANCEL",
@@ -190,8 +245,4 @@ export const LoggerEvents = Object.freeze({
     "REPLY_EDIT_TOGGLE": "REPLY_EDIT_TOGGLE", // editing of reply is toggle via sub menu
     "REPLY_EDIT_CANCEL": "REPLY_EDIT_CANCEL",
     "REPLY_DELETE": "REPLY_DELETE",
-    "SUGGESTION_INSERT_AFTER": "SUGGESTION_INSERT_AFTER",
-    "SUGGESTION_TAKE_OVER": "SUGGESTION_TAKE_OVER",
-    "SUGGESTION_COPY_TO_CLIPBOARD": "SUGGESTION_COPY_TO_CLIPBOARD",
-    "FINAL_TEXT": "FINAL_TEXT"
 });

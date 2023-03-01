@@ -1,5 +1,5 @@
-import {Button, FloatingLabel, Modal, Form, Container, Row, Col} from "react-bootstrap";
-import React, {useState} from "react";
+import {Button, FloatingLabel, Modal, Form, Container, Row, Col, Badge} from "react-bootstrap";
+import React, {useEffect, useRef, useState} from "react";
 import './AiRefinement.css';
 import ContentEditable from "react-contenteditable";
 
@@ -7,7 +7,9 @@ export default function AiRefinement(props) {
 
     const {
         title,
+        textBeforeOriginalText,
         originalText,
+        textAfterOriginalText,
         ai,
         type,
         text,
@@ -16,6 +18,7 @@ export default function AiRefinement(props) {
         handleRefinement,
         ...rest
     } = props
+
 
     let refinement = text;
 
@@ -31,8 +34,18 @@ export default function AiRefinement(props) {
         />
     }
 
+    const markerRef = useRef(null)
+    const scrollToAnnotation = () => {
+        if (markerRef.current) {
+            markerRef.current.getElementsByClassName('annotation')[0].scrollIntoView({block: "center", inline: "nearest"});
+        }
+    };
+
     return (
         <Modal
+            onShow={() => scrollToAnnotation()}
+            contentClassName={"refinement-modal-content"}
+            dialogClassName={"refinement-modal"}
             {...rest}
             size="lg"
             aria-labelledby="contained-modal-title-vcenter"
@@ -50,24 +63,31 @@ export default function AiRefinement(props) {
             </Modal.Header>
 
             <Modal.Body>
-                <Container>
+                <Container className="vh-50 d-flex flex-column ">
                     <Row>
-                        <Col xs={12} md={2}>
-                            Original:
+                        <Col xs={12} md={6}>
+                            <Row>
+                                <Col>
+                                    <Badge bg="secondary">
+                                        Original
+                                    </Badge>
+                                </Col>
+                            </Row>
+                            <div className="overflow-scroll original-text" ref={markerRef} dangerouslySetInnerHTML={{ __html: originalText }}></div>
                         </Col>
-                        <Col xs={12} md={10}>
-                            { originalText }
-                        </Col>
-                    </Row>
-                </Container>
-                <hr />
-                <Container>
-                    <Row>
-                        <Col xs={12} md={2}>
-                            { type }:
-                        </Col>
-                        <Col xs={12} md={10}>
-                            { refinement }
+                        <Col xs={12} md={6}>
+                            <Row>
+                                <Col>
+                                    <Badge bg="warning" text="dark">
+                                        AI Suggestion
+                                    </Badge>
+                                </Col>
+                            </Row>
+                            <Row className="h-100">
+                                <Col className={"refinement-text"}>
+                                    <div onClick={scrollToAnnotation} className="overflow-scroll refinement">{ refinement }</div>
+                                </Col>
+                            </Row>
                         </Col>
                     </Row>
                 </Container>

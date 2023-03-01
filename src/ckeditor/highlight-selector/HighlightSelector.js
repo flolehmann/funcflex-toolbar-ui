@@ -1,6 +1,11 @@
 import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
 import Rect from '@ckeditor/ckeditor5-utils/src/dom/rect';
 import { nanoid } from 'nanoid'
+import Range from "@ckeditor/ckeditor5-engine/src/model/range";
+import Selection from "@ckeditor/ckeditor5-engine/src/model/selection";
+import LiveRange from "@ckeditor/ckeditor5-engine/src/model/liverange";
+import Position from "@ckeditor/ckeditor5-engine/src/model/position";
+import getSelectedContent from "@ckeditor/ckeditor5-engine/src/model/utils/getselectedcontent";
 
 import imageIcon from '@ckeditor/ckeditor5-core/theme/icons/image.svg';
 import eraserIcon from '@ckeditor/ckeditor5-core/theme/icons/eraser.svg';
@@ -116,7 +121,7 @@ export default class HighlightSelector extends Plugin {
             attributes[userAttributeId] = userId
         }
 
-        let classes = ['annotation', annotationType, annotationType + "-" + annotationId]
+        let classes = ['annotation', String(annotationType).toLowerCase(), annotationType + "-" + annotationId]
         if (userId) {
             classes.push(annotationType + "-by-" + userId)
         }
@@ -172,7 +177,7 @@ export default class HighlightSelector extends Plugin {
         });
 
         if (annotationIdentifier === this.currentSelectedMarker) {
-            this.unsetCurrentSelectedAnnotation(annotationType, annotationId, userId);
+            this.unsetCurrentSelectedCard(annotationType, annotationId, userId);
         }
 
         return this.rects;
@@ -205,13 +210,336 @@ export default class HighlightSelector extends Plugin {
     getMarkerText(marker) {
         const result = [];
         const range = marker.getRange();
+        console.log(range);
         for ( const item of range.getItems() ) {
             if (item.is("textProxy")) {
                 result.push(item.data);
             }
         }
+        console.log(result);
         return result.join(" ");
     }
+
+    getRangeBeforeMarker(marker, charsBefore = 30, startShift = false) {
+        const startPosition = marker.getStart();
+
+        let shiftedPosition = startPosition.getShiftedBy(startPosition.offset * -1);
+        if (charsBefore > startPosition.offset || startShift) {
+            console.log("startPosition", startPosition)
+            // check if there is an element before
+            if (startPosition.parent.previousSibling) {
+                //shift position path up to element before
+                shiftedPosition = new Position(startPosition.root, [startPosition.parent.previousSibling.getPath()[0], 0])
+                // element is long!
+                if (shiftedPosition.parent.maxOffset >= charsBefore) {
+                     shiftedPosition = shiftedPosition.getShiftedBy(charsBefore)
+                }
+            }
+        }
+        console.log("COMPARE", startPosition, shiftedPosition)
+
+        const range = new Range(shiftedPosition, marker.getStart());
+        return range;
+    }
+
+    isPreviousTextLong(marker, chars = 30) {
+        const startPosition = marker.getStart();
+        return startPosition.offset >= chars;
+    }
+
+    isNextTextLong(marker, chars = 30) {
+        const endPosition = marker.getEnd();
+        return endPosition.parent.maxOffset - endPosition.offset >= chars;
+    }
+
+    modelElementToDomCopy(modelElement) {
+        const editor = this.editor;
+        const domConverter = editor.editing.view.domConverter;
+        const viewElement = editor.editing.mapper.toViewElement(modelElement);
+        const dom = domConverter.mapViewToDom(viewElement);
+        const domCopy = dom.cloneNode(true);
+        return domCopy;
+    }
+
+    getElementPreviousMarkerContainingElement(marker, chars = 30) {
+        if (!this.isPreviousTextLong(marker, chars)) {
+            const commonAncestor = marker.getRange().getCommonAncestor();
+            const previousSibling = commonAncestor.previousSibling;
+            if (previousSibling) {
+                const domPreviousSiblingCopy = this.modelElementToDomCopy(previousSibling);
+                return domPreviousSiblingCopy;
+            }
+        }
+        return null;
+    }
+
+    getElementNextMarkerContainingElement(marker, chars = 30) {
+        if (!this.isNextTextLong(marker, chars)) {
+            const commonAncestor = marker.getRange().getCommonAncestor();
+            const nextSibling = commonAncestor.nextSibling;
+            console.log("nextSibling", nextSibling)
+            if (nextSibling) {
+                const domNextSiblingCopy = this.modelElementToDomCopy(nextSibling);
+                console.log("domNextSiblingCopy", domNextSiblingCopy)
+                return domNextSiblingCopy;
+            }
+        }
+        return null;
+    }
+
+    hasMultipleAncestors(marker) {
+        const ancestors = marker.getRange().getContainedElement();
+        console.log("ANCESTORRRS", ancestors);
+        return ancestors.length > 1;
+    }
+
+    getElementContainingMarker(marker, chars = 30) {
+        const commonAncestor = marker.getRange().getCommonAncestor();
+        const domAncestorCopy = this.modelElementToDomCopy(commonAncestor);
+        const [ , annotationType, annotationId, userId ] = marker.name.split(':');
+        return domAncestorCopy;
+
+        // retrieve id / class as parameter
+
+        const markerSpans = domAncestorCopy.querySelectorAll(".annotation");
+        markerSpans.forEach(span => {
+            //span.className = "";
+            console.log("MUI MUI MUI", span.textContent);
+            span.textContent = "HAHAHAHHHAHA"
+        });
+
+        console.log("MARKER SPANS", markerSpans);
+
+        //domAncestorCopy.textContent = "- Write a blog post about";
+
+        console.log("DOM CONVERTERed COPY", domAncestorCopy);
+
+        // const range = new Range(shiftedStartPosition, shiftedEndPosition);
+        // console.log("CONTAINED ELEMENT", range.getContainedElement())
+        //
+        // for ( const item of range.getItems() ) {
+        //     console.log("CONTAININGMARKERITEMS", item);
+        // }
+    }
+
+    // getTextBeforeMarker(marker, charsBefore = 30) {
+    //     const result = [];
+    //     const range = this.getRangeBeforeMarker(marker, charsBefore);
+    //     const liveRange = LiveRange.fromRange(range);
+    //     console.log("START ITEM ITER BEFORE")
+    //     for ( const item of liveRange.getItems() ) {
+    //         console.log("ITEM", item)
+    //         if (item.is("textProxy")) {
+    //             result.push(item.data);
+    //         }
+    //         else {
+    //             result.push("LINE_BREAK")
+    //         }
+    //     }
+    //     return result;
+    // }
+
+    getRootDomCopy(marker) {
+       const root = marker.getRange().root;
+       const domRootCopy = this.modelElementToDomCopy(root);
+       return domRootCopy;
+    }
+
+    getOriginalTextDom(marker) {
+        const domRootCopy = this.getRootDomCopy(marker);
+        //remove classList and id
+        domRootCopy.classList = "";
+        domRootCopy.id = "";
+        //remove all classes from marker spans
+        const [ , annotationType, annotationId, userId ] = marker.name.split(':');
+        const markerClass = annotationType + "-" + annotationId;
+        const markerSpans = domRootCopy.querySelectorAll("span.annotation:not(."+ markerClass + ")");
+        markerSpans.forEach(span => {
+            span.classList = "";
+        });
+        const rootDomString = new String(domRootCopy.innerHTML);
+        return rootDomString;
+    }
+
+    getTextSnippet(marker, charsAround = 30) {
+        const elementContainingMarker = this.getElementContainingMarker(marker, charsAround);
+        const previousElementContainingMarker = this.getElementPreviousMarkerContainingElement(marker, charsAround);
+        const nextElementContainingMarker = this.getElementNextMarkerContainingElement(marker, charsAround);
+        const result = []
+        previousElementContainingMarker && result.push(previousElementContainingMarker);
+        result.push(elementContainingMarker);
+        nextElementContainingMarker && result.push(nextElementContainingMarker);
+        return result;
+    }
+
+    getTextBeforeMarker(marker, charsBefore = 30) {
+        const editor = this.editor;
+        const data = this.editor.data;
+        const domConverter = editor.editing.view.domConverter;
+
+        const domRoot = this.getRefinementText(marker);
+
+        console.log(marker)
+        //this.getElementContainingMarker(marker,charsBefore);
+        const yo = this.getTextSnippet(marker, charsBefore);
+
+        console.log("YO", yo);
+
+        const rangeBefore = this.getRangeBeforeMarker(marker, charsBefore, true);
+
+        const viewRangeBefore = editor.editing.mapper.toViewRange(rangeBefore);
+
+        const viewRangeMarker = editor.editing.mapper.toViewRange(marker.getRange())
+
+        console.log("RANGE COMPARE", rangeBefore, viewRangeBefore)
+
+        for ( const item of viewRangeMarker.getItems() ) {
+            console.log("VIEW RANGE MARKER", domConverter.mapViewToDom(item));
+        }
+
+
+        for ( const item of viewRangeBefore.getItems() ) {
+           console.log("UIUIUIU", item)
+
+            console.log("VIEW RANGE BEFORE", domConverter.mapViewToDom(item));
+        }
+
+
+        for ( const item of rangeBefore.getItems() ) {
+            const viewElement =  editor.editing.mapper.toViewElement(item);
+
+
+            console.log("OHO", item, viewElement);
+            console.log("AHA", domConverter.mapViewToDom(editor.editing.mapper.toViewElement(item)));
+            if (item.is( 'element' )) {
+                console.log("STRINGIFY", data.stringify(item));
+            }
+            if (viewElement) {
+                for ( const child of viewElement.getChildren() ) {
+                    console.log("CHILD", child)
+                }
+            }
+
+        }
+        console.log("SDGASG")
+        //
+        // const content = getSelectedContent(editor.model, selection);
+        //
+        // let sHtmlSelection = this.editor.data.stringify(content);
+        //
+        // console.log(sHtmlSelection)
+        return "content";
+    }
+
+    getRangeAfterMarker(marker, charsAfter = 30) {
+        const result = [];
+        const editor = this.editor;
+
+        const endPosition = marker.getEnd();
+
+        console.log("endPosition", endPosition);
+
+        let shiftedPosition = endPosition.getShiftedBy(endPosition.parent.maxOffset - endPosition.offset);
+        console.log("shiftedPositonAFTER", shiftedPosition);
+        if (charsAfter + endPosition.offset > endPosition.parent.maxOffset) {
+            // check if there is a element after
+            if (endPosition.parent.nextSibling) {
+                console.log("NEXTSIBLING", endPosition.parent.nextSibling);
+                //shift position to element after
+                shiftedPosition = new Position(endPosition.root, [endPosition.parent.nextSibling.getPath()[0], 0])
+                // element is long!
+                if (shiftedPosition.parent.maxOffset >= charsAfter) {
+                    shiftedPosition = shiftedPosition.getShiftedBy(charsAfter)
+                    console.log("YSHIFETERY", shiftedPosition)
+                } else {
+                    console.log("MAXIMAL SHIFT", shiftedPosition)
+                    shiftedPosition = shiftedPosition.getShiftedBy(shiftedPosition.parent.maxOffset)
+                }
+            }
+        }
+
+        const range = new Range(marker.getEnd(), shiftedPosition);
+        return range;
+    }
+
+    // getTextAfterMarker(marker, charsAfter = 30) {
+    //     const result = [];
+    //     const range = this.getRangeAfterMarker(marker, charsAfter);
+    //     const liveRange = LiveRange.fromRange(range);
+    //     console.log("START ITEM ITER AFTER")
+    //     for ( const item of liveRange.getItems() ) {
+    //         console.log("ITEM", item)
+    //         if (item.is("textProxy")) {
+    //             result.push(item.data);
+    //         } else {
+    //             result.push("LINE_BREAK")
+    //         }
+    //     }
+    //     console.log("YEAHYOO", result);
+    //     return result;
+    // }
+
+
+    getTextAfterMarker(marker, charsAfter = 30) {
+        const editor = this.editor;
+        const data = this.editor.data;
+        const rangeAfter = this.getRangeAfterMarker(marker, charsAfter);
+
+        console.log("rangeAfter", rangeAfter)
+
+        let selection;
+
+        editor.model.change(writer => {
+            const range = writer.createRange(rangeAfter.start, rangeAfter.end);
+            selection = writer.createSelection(range);
+        } );
+
+        const content = getSelectedContent(editor.model, selection);
+        console.log("getTEXTAFTER", content, data.stringify(content));
+        return content;
+    }
+
+    getMarkerTextPlusSurroundingText(marker, charsSurrouding = 30) {
+        const editor = this.editor;
+        const data = this.editor.data;
+        const rangeBefore = this.getRangeBeforeMarker(marker, charsSurrouding);
+        const rangeAfter = this.getRangeAfterMarker(marker, charsSurrouding);
+        let selection;
+
+        editor.model.change( writer => {
+            const range = writer.createRange(rangeBefore.start, rangeAfter.end);
+            selection = writer.createSelection(range);
+        } );
+
+        console.log("SELECTION", editor.model, selection);
+        const content = getSelectedContent(editor.model, selection);
+        console.log("getSurrounding", content, data.stringify(content));
+        console.log("MARKERSSSS", content.markers)
+        for ( const child of content.getChildren() ) {
+            console.log(child)
+        }
+        return content;
+    }
+
+
+    // getMarkerTextPlusSurroundingText(marker) {
+    //     const editor = this.editor;
+    //     console.log("YO");
+    //     const result = [];
+    //     const markerRange = marker.getRange();
+    //     const range = new Range(marker.getStart().getShiftedBy(-20), marker.getEnd().getShiftedBy(20));
+    //
+    //     const liveRange = LiveRange.fromRange(range);
+    //     console.log(liveRange)
+    //     for ( const item of liveRange.getItems() ) {
+    //         console.log(item)
+    //         if (item.is("textProxy")) {
+    //             result.push(item.data);
+    //         }
+    //     }
+    //     console.error(result);
+    //     return result.join(" ");
+    // }
 
     replaceMarkedText(text, marker) {
         const editor = this.editor;
@@ -271,7 +599,7 @@ export default class HighlightSelector extends Plugin {
     }
 
     computeRects(annotationType) {
-        const annotations = Array.from(document.getElementsByClassName(annotationType));
+        const annotations = Array.from(document.getElementById('ckEditorWrapper').getElementsByClassName(annotationType));
         const result = {};
         for (let i = 0; i < annotations.length; i++) {
             let dataAnnotationType = annotations[i].attributes["data-annotation-type"].value;
@@ -411,7 +739,7 @@ export default class HighlightSelector extends Plugin {
                 const user = annotation.attributes.getNamedItem(userAttribute);
                 const isSelected = annotation.classList.contains("selected");
 
-                let updateId = this.setCurrentSelectedAnnotation(annotationType.value, id.value, user.value, isSelected);
+                let updateId = this.setCurrentSelectedCard(annotationType.value, id.value, user.value, isSelected);
 
                 if (callback) {
                     callback(updateId);
@@ -422,14 +750,14 @@ export default class HighlightSelector extends Plugin {
         });
     }
 
-    setCurrentSelectedAnnotation(annotationType, id, user, isSelected = false) {
+    setCurrentSelectedCard(annotationType, id, user, isSelected = false) {
         const annotationIdentifier = this.createAnnotationIdentifier(annotationType, id, user);
 
         // reset old marker
         if (isSelected || (this.currentSelectedMarker !== "" &&
             this.currentSelectedMarker !== annotationIdentifier)) {
             const [ , annotationType, annotationId, userId ] = this.currentSelectedMarker.split(':');
-            this.unsetCurrentSelectedAnnotation(annotationType, annotationId, userId);
+            this.unsetCurrentSelectedCard(annotationType, annotationId, userId);
             this.update(annotationType, annotationId, userId);
             console.log("RESET DONE")
         }
@@ -443,7 +771,7 @@ export default class HighlightSelector extends Plugin {
         }
     }
 
-    unsetCurrentSelectedAnnotation(annotationType, id, user, refresh = false) {
+    unsetCurrentSelectedCard(annotationType, id, user, refresh = false) {
         this.currentSelectedMarker = "";
         if (refresh) {
             this.update(annotationType, id, user);

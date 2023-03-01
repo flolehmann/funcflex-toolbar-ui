@@ -1,4 +1,4 @@
-import {CommentStatus} from "../App";
+import {CardStatus} from "../App";
 
 function sidebarReducer(state, action) {
     const id = action.payload.id || action.payload.cardId || null;
@@ -14,9 +14,12 @@ function sidebarReducer(state, action) {
 
     const selectedCardId = action.payload.selectedCardId || "";
 
+    const ai = action.payload.ai || null;
     const suggestionId = action.payload.suggestionId || null;
 
     const user = action.payload.user;
+
+    const isLoading = action.payload.isLoading || false;
 
     let tempCard;
     let replyIndex;
@@ -27,19 +30,20 @@ function sidebarReducer(state, action) {
             return { ...state,
                 cards: { ...state.cards, [card.id]: card },
                 cardRects: cardRects || state.cardRects,
+                selectedCardId: selectedCardId || state.selectedCardId
             };
         case 'deleteCard':
             tempCard = { ...cards[id] };
-            tempCard.state = CommentStatus.DELETED;
+            tempCard.state = CardStatus.DELETED;
             tempCard.history = [...tempCard.history, {
-                state: CommentStatus.DELETED,
+                state: CardStatus.DELETED,
                 time: Date.now()
             }];
             return { ...state,
-                comments: {
-                    ...state.comments, [tempCard.id]: tempCard
+                cards: {
+                    ...state.cards, [tempCard.id]: tempCard
                 },
-                commentRects: cardRects || state.commentRects
+                cardRects: cardRects || state.cardRects
             };
         case 'updateCardRects':
             // fast and naive comparison of cardRects
@@ -57,11 +61,18 @@ function sidebarReducer(state, action) {
                 ...state,
                 selectedCardId: selectedCardId
             }
+        // AI CARD RELTAED CASES:
+        case 'setIsLoading':
+            tempCard = { ...cards[id] };
+            tempCard.isLoading = isLoading;
+            return { ...state,
+                cards: {...cards, [id]: tempCard}
+            };
         //COMMENT RELATED CASES:
         case 'postComment':
-            card.state = CommentStatus.POSTED
+            card.state = CardStatus.POSTED
             card.history = [...card.history, {
-                state: CommentStatus.POSTED,
+                state: CardStatus.POSTED,
                 time: Date.now()
             }];
             return { ...state,
@@ -77,9 +88,9 @@ function sidebarReducer(state, action) {
             };
         case 'cancelComment':
             tempCard = { ...cards[id] };
-            tempCard.state = CommentStatus.CANCELLED;
+            tempCard.state = CardStatus.CANCELLED;
             tempCard.history = [...tempCard.history, {
-                state: CommentStatus.CANCELLED,
+                state: CardStatus.CANCELLED,
                 time: Date.now()
             }];
             return { ...state,
@@ -88,24 +99,24 @@ function sidebarReducer(state, action) {
                 },
                 cardRects: cardRects || state.commentRects
             };
-        case 'approveComment':
+        case 'approveCard':
             tempCard = { ...cards[id] };
-            tempCard.state = CommentStatus.APPROVED;
+            tempCard.state = CardStatus.APPROVED;
             tempCard.history = [...tempCard.history, {
-                state: CommentStatus.APPROVED,
+                state: CardStatus.APPROVED,
                 time: Date.now()
             }];
             return { ...state,
                 cards: {
                     ...state.cards, [tempCard.id]: tempCard
                 },
-                commentRects: cardRects || state.commentRects
+                cardRects: cardRects || state.cardRects
             };
         case 'deleteComment':
             tempCard = { ...cards[id] };
-            tempCard.state = CommentStatus.DELETED;
+            tempCard.state = CardStatus.DELETED;
             tempCard.history = [...tempCard.history, {
-                state: CommentStatus.DELETED,
+                state: CardStatus.DELETED,
                 time: Date.now()
             }];
             return { ...state,
@@ -164,9 +175,9 @@ function sidebarReducer(state, action) {
             tempCard = { ...cards[id] };
             replyIndex = tempCard.replies.findIndex(reply => reply.id === replyId);
             const deletedReply = { ...tempCard.replies[replyIndex] };
-            deletedReply.state = CommentStatus.DELETED;
+            deletedReply.state = CardStatus.DELETED;
             deletedReply.history = [...deletedReply.history, {
-                state: CommentStatus.DELETED,
+                state: CardStatus.DELETED,
                 time: Date.now()
             }];
             tempCard.replies[replyIndex] = deletedReply;
@@ -175,7 +186,15 @@ function sidebarReducer(state, action) {
                     ...state.cards, [id]: tempCard
                 }
             };
-        case 'addSuggestion':
+        case 'addAiResult':
+            tempCard = { ...cards[id] };
+            tempCard.ai = ai;
+            tempCard.isLoading = false;
+            console.log("ADDED AI RESULT")
+            return { ...state,
+                cards: {...cards, [id]: tempCard}
+            };
+        case 'insertSuggestion':
             tempCard = { ...cards[id] };
             tempCard.suggestion = {
                 id: suggestionId,

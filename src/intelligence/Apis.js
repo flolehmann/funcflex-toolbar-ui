@@ -14,6 +14,12 @@ const APIS = {
     },
     opus_mt: {
         url: "https://btn6xd.inf.uni-bayreuth.de/opus/api/v1/predict"
+    },
+    gpt_3: {
+        url: "https://api.openai.com/v1/completions",
+        model: "text-davinci-002",
+        key: "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"
+        //key: "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"
     }
 };
 
@@ -105,4 +111,30 @@ export const generate = (text) => {
         .then(result => {
             return result;
         });
+}
+
+export const prompt = (text) => {
+    return fetch(APIS.gpt_3.url, {
+        method: 'POST',
+        mode: "cors",
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + APIS.gpt_3.key
+        },
+        body: JSON.stringify({
+            "model": APIS.gpt_3.model,
+            "prompt": text,
+            "max_tokens": 256,
+            "temperature": 0.5,
+            "top_p": 1,
+            "n": 1,
+            "stream": false,
+            "logprobs": null,
+            "stop": null
+        })
+    })
+    .then(response => response.json())
+    .then(result => {
+        return result;
+    });
 }
