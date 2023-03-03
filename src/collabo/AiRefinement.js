@@ -73,7 +73,7 @@ export default function AiRefinement(props) {
                                     </Badge>
                                 </Col>
                             </Row>
-                            <div className="overflow-scroll original-text" ref={markerRef} dangerouslySetInnerHTML={{ __html: originalText }}></div>
+                            <div className="original-text" ref={markerRef} dangerouslySetInnerHTML={{ __html: originalText }}></div>
                         </Col>
                         <Col xs={12} md={6}>
                             <Row>
@@ -85,7 +85,7 @@ export default function AiRefinement(props) {
                             </Row>
                             <Row className="h-100">
                                 <Col className={"refinement-text"}>
-                                    <div onClick={scrollToAnnotation} className="overflow-scroll refinement">{ refinement }</div>
+                                    <div onClick={scrollToAnnotation} className="refinement">{ refinement }</div>
                                 </Col>
                             </Row>
                         </Col>

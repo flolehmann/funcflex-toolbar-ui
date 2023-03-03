@@ -9,8 +9,8 @@ const prototypeConfig = {
 <p>The AI skills support you with summarizing, extending, and translating text within the editor. By commenting parts of the text with to-dos an AI author will take over these tasks. See the screenshots below for a short demonstration.</p>
 
 <video controls style="width: 100%">
-    <source src="http://dev.lehmannsuperior.de/collabwritingai/briefing-slides.webm"
-            type="video/webm">
+    <source src="https://dev.florianlehmann.de/collabwritingwithaitoolset/briefing-slides-toolset.mp4"
+            type="video/mp4">
     Sorry, your browser doesn't support embedded videos.
 </video>
 

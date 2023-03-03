@@ -14,7 +14,16 @@ import {
 } from "react-bootstrap";
 import {LoggerEvents} from "../logger/logger";
 import CopyToClipboard from "../collabo/CopyToClipboard";
-import {CaretRight, CaretRightFill, CheckLg, Send, SendFill} from "react-bootstrap-icons";
+import {
+    CaretRight,
+    CaretRightFill,
+    CheckLg, LayoutSplit,
+    Send,
+    SendFill,
+    SquareHalf,
+    ThreeDots,
+    ThreeDotsVertical, WindowSplit
+} from "react-bootstrap-icons";
 import AiRefinement from "../collabo/AiRefinement";
 import CommentForm from "../collabo/CommentForm/CommentForm";
 import {InsertionStatus} from "../collabo/Comment";
@@ -123,6 +132,27 @@ const AnnotationCard = forwardRef((props, ref) => {
         e.nativeEvent.stopImmediatePropagation();
     }} />
 
+
+    const renderTooltip = (props) => (
+        <Tooltip id="button-tooltip" {...props}>
+            {"Show Details" }
+        </Tooltip>
+    );
+
+    const detailsButton = <OverlayTrigger
+        placement="right"
+        delay={{ show: 120, hide: 225 }}
+        overlay={renderTooltip}
+    >
+        <Button className={"show-details-button"} variant={"light"} onClick={e => {
+            e.preventDefault();
+            e.stopPropagation();
+            e.nativeEvent.stopImmediatePropagation();
+            logger(LoggerEvents.SUGGESTION_VIEWDETAIL, {"cardId": id, "cardType": type});
+            setAiRefinementShow(true);
+        }}><ThreeDots /></Button>
+    </OverlayTrigger>
+
     const insertSuggestionAfterMarker = refinedTextHtml => {
         const marker = csc.getMarker(type, id, userName);
         const range = csc.insertAfterMarkedText(refinedTextHtml, marker, false);
@@ -193,6 +223,13 @@ const AnnotationCard = forwardRef((props, ref) => {
         }}/>
     </div>
 
+    //Make fading of text snippets dynamic
+    const aiTextRef = useRef(null);
+    let dynamicFadeClass = "";
+    if (aiTextRef.current && aiTextRef.current.clientHeight >= 110) {
+        dynamicFadeClass = "ai-text-fade";
+    }
+
     let cardContent = loadingIndicator;
     if (!isLoading) {
         cardContent = <>
@@ -204,15 +241,16 @@ const AnnotationCard = forwardRef((props, ref) => {
                     </div>
                 </div>
                 <div className={"card-info-right"}>
+                    { detailsButton }
                     { closeButton }
                 </div>
             </Card.Title>
             <div className={"ai-content"}>
-                { prompt && <div> &bdquo;{prompt}&rdquo;</div> }
-                <div className={"ai-text"}>
+                <div className={"prompt-text"}>{ prompt && <div> &bdquo;{prompt}&rdquo;</div> }</div>
+                <div ref={aiTextRef} className={"ai-text " + dynamicFadeClass}>
                     { ai.prediction }
                 </div>
-                { showDetails }
+
             </div>
             <div>
                 { buttonGroup  }

@@ -13,6 +13,16 @@
     margin-bottom: .5rem;
 }
 
+.show-details-button.btn-light {
+    background: none;
+    border: none;
+    color: #7e7e7e;
+}
+.show-details-button.btn-light:hover {
+    background-color: #d3d4d5;
+    color: #3f3f3f;
+}
+
 .card-info-left {
     display: flex;
     flex-direction: row;
@@ -121,16 +131,26 @@
     position: relative;
     margin-top: 0.25rem;
     padding: 0;
-    font-family: "serif";
-    font-size: 0.9rem;
+    font-family: "sans-serif";
+    font-size: 0.85rem;
 
-    max-height: 8.5rem;
-    overflow: hidden;
+    max-height: 7.2rem;
 
     border: none;
     margin-bottom: 0.5rem;
-    overflow: hidden;
-    line-height: 1.25rem;
+    /*overflow: hidden;*/
+
+    /*display: -webkit-box;
+    -webkit-line-clamp: 5;
+    -webkit-box-orient: vertical;*/
+
+    line-height: 1.2rem;
+}
+
+.prompt-text {
+    font-family: "serif";
+    font-size: 0.80rem;
+    font-style: italic;
 }
 
 .ai-text:after {
@@ -141,17 +161,33 @@
     right: 0;
     width: 85%;
     height: 1.1em;
-    background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1) 50%);
+    background: none;
+   /*background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1) 50%);*/
 }
+
+.ai-text-fade:after {
+    content: "";
+    text-align: right;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 85%;
+    height: 1.25em;
+    background: none;
+    background: linear-gradient(to right, rgba(255, 255, 5, 0), rgb(255, 255, 255) 25%);
+}
+
 
 .ai-show-details {
     cursor: pointer;
-    position: absolute;
+    position: relative;
+    /*position: absolute;
     bottom: 0.2rem;
-    right: 0.2rem;
+    right: 0.2rem;*/
     font-size: 0.85rem;
 
     color: #06357a;
+    text-align:right;
 }
 
 .ai-show-details:hover {
