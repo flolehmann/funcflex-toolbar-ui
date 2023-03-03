@@ -4,9 +4,9 @@ const prototypeConfig = {
     documentName: "Blog post about tomato plants + Summary (tldr)",
     documentDescription: "Use the AI toolset to summarize, expand, and translate text. Use the prompt tool to enter your own AI action.",
     infoModalTitle: "Task Briefing",
-    infoModalText: `<p>Here you will use an online text editor with AI skills.</p>
+    infoModalText: `<p>Here you will use an online text editor with an AI toolset.</p>
 
-<p>The AI skills support you with summarizing, extending, and translating text within the editor. By commenting parts of the text with to-dos an AI author will take over these tasks. See the screenshots below for a short demonstration.</p>
+<p>The AI toolset supports you with summarizing, extending, and translating text within the editor. Furthermore, you can specify an AI action on your own using the prompt tool. By highlighting parts of the text and selecting the AI tool from the floating toolbar, an AI action will be applied to your text. See the video below for a short demonstration.</p>
 
 <video controls style="width: 100%">
     <source src="https://dev.florianlehmann.de/collabwritingwithaitoolset/briefing-slides-toolset.mp4"
