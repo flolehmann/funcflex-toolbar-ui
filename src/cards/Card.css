@@ -167,6 +167,7 @@
 
 .ai-text-fade:after {
     content: "";
+    z-index:199;
     text-align: right;
     position: absolute;
     bottom: 0;
@@ -177,21 +178,32 @@
     background: linear-gradient(to right, rgba(255, 255, 5, 0), rgb(255, 255, 255) 25%);
 }
 
-
 .ai-show-details {
-    cursor: pointer;
+    display: inline-block;
     position: relative;
-    /*position: absolute;
-    bottom: 0.2rem;
-    right: 0.2rem;*/
-    font-size: 0.85rem;
+    z-index:200;
+    left: 0;
+    bottom: 0.1rem;
 
+    cursor: pointer;
+    font-size: 0.85rem;
     color: #06357a;
-    text-align:right;
+    line-height: 0.8rem;
 }
 
-.ai-show-details:hover {
-    text-decoration: underline;
+.ai-text-fade .ai-show-details {
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 40%;
+}
+
+.ai-show-details .badge {
+    background-color: #aaa !important;
+}
+
+.ai-show-details .badge:hover {
+    background-color: #666 !important;
 }
 
 .typing-names {

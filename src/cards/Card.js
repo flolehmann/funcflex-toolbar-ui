@@ -1,6 +1,7 @@
 import React, {forwardRef, useContext, useEffect, useRef, useState} from "react";
 import {AnnotationStatus, CardSkills, CardStatus, CardType, LoggerContext, SidebarContext, UserContext} from "../App";
 import {
+    Badge,
     Button,
     Card,
     CloseButton,
@@ -17,7 +18,7 @@ import CopyToClipboard from "../collabo/CopyToClipboard";
 import {
     CaretRight,
     CaretRightFill,
-    CheckLg, LayoutSplit,
+    CheckLg, InfoCircle, InfoCircleFill, JustifyLeft, LayoutSplit,
     Send,
     SendFill,
     SquareHalf,
@@ -171,13 +172,19 @@ const AnnotationCard = forwardRef((props, ref) => {
     const loadingIndicator = <div>{loadingIndicatorText}</div>
 
     const showDetails = insertionStatus !== InsertionStatus.INSERT_AFTER ? <div className={"ai-show-details"}>
-            <span onClick={e => {
-                e.preventDefault();
-                e.stopPropagation();
-                e.nativeEvent.stopImmediatePropagation();
-                logger(LoggerEvents.SUGGESTION_VIEWDETAIL, {"cardId": id, "cardType": type});
-                setAiRefinementShow(true);
-            }}>... show details</span>
+        <OverlayTrigger
+            placement="right"
+            delay={{ show: 120, hide: 50 }}
+            overlay={renderTooltip}
+        >
+            <Badge pill bg="secondary" text="light" onClick={e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.nativeEvent.stopImmediatePropagation();
+                    logger(LoggerEvents.SUGGESTION_VIEWDETAIL, {"cardId": id, "cardType": type});
+                    setAiRefinementShow(true);
+                }}>...</Badge>
+        </OverlayTrigger>
     </div> : null;
 
     let appendButton = insertionStatus !== InsertionStatus.INSERT_AFTER ? <Button onClick={ e => {
@@ -223,10 +230,13 @@ const AnnotationCard = forwardRef((props, ref) => {
         }}/>
     </div>
 
+
+    const isLongText = () => aiTextRef.current && aiTextRef.current.clientHeight >= 110;
+
     //Make fading of text snippets dynamic
     const aiTextRef = useRef(null);
     let dynamicFadeClass = "";
-    if (aiTextRef.current && aiTextRef.current.clientHeight >= 110) {
+    if (isLongText()) {
         dynamicFadeClass = "ai-text-fade";
     }
 
@@ -241,16 +251,14 @@ const AnnotationCard = forwardRef((props, ref) => {
                     </div>
                 </div>
                 <div className={"card-info-right"}>
-                    { detailsButton }
                     { closeButton }
                 </div>
             </Card.Title>
             <div className={"ai-content"}>
                 <div className={"prompt-text"}>{ prompt && <div> &bdquo;{prompt}&rdquo;</div> }</div>
                 <div ref={aiTextRef} className={"ai-text " + dynamicFadeClass}>
-                    { ai.prediction }
+                    { ai.prediction } { showDetails }
                 </div>
-
             </div>
             <div>
                 { buttonGroup  }
