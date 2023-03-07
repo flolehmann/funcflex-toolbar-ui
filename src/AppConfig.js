@@ -7,12 +7,14 @@ const prototypeConfig = {
     infoModalText: `<p>Here you will use an online text editor with an AI toolset.</p>
 
 <p>The AI toolset supports you with summarizing, extending, and translating text within the editor. Furthermore, you can specify an AI action on your own using the prompt tool. By highlighting parts of the text and selecting the AI tool from the floating toolbar, an AI action will be applied to your text. See the video below for a short demonstration.</p>
-
+ 
+<div>
 <video controls style="width: 100%">
     <source src="https://dev.florianlehmann.de/collabwritingwithaitoolset/briefing-slides-toolset.mp4"
             type="video/mp4">
     Sorry, your browser doesn't support embedded videos.
 </video>
+</div>
 
 <hr />
 
