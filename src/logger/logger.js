@@ -17,7 +17,7 @@ export default function useLogger(loggerName, apiUrl, studyId) {
                 setConditionId(conditionId);
             }
             if (loggerKey) {
-                sal.storeLoggerKey(loggerKey);
+                sal.setLoggerKey(loggerKey);
             }
             if (conditionId && loggerKey) {
                 setIsReady(true);
@@ -181,7 +181,7 @@ export default function useLogger(loggerName, apiUrl, studyId) {
         if (conditionId === 0) {
             console.warn("Cannot useLogger since no condition_id has been provided.", eventName, data, metaData);
         }
-        else if (!sal.readLoggerKey()) {
+        else if (!sal.loggerKey) {
             console.warn("Cannot useLogger since no logger_key has been provided.", eventName, data, metaData);
         } else {
             logger(eventName, data, metaData);
