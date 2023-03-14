@@ -323,7 +323,7 @@ const AnnotationCard = forwardRef((props, ref) => {
                                           e.nativeEvent.stopImmediatePropagation();
                                       }
                                   }}
-                                  onKeyDown={e => logger(LoggerEvents.PROMPT_KEY_DOWN, e.nativeEvent,
+                                  onKeyDown={e => logger(LoggerEvents.KEY_DOWN, e.nativeEvent,
                                       {"cardId": id, "cardType": type, "prompt_text": prompt, "marked_text": markerText})}
                                   onChange={(e) => {
                                       setPrompt(e.target.value)
