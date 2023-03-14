@@ -6,7 +6,7 @@ const prototypeConfig = {
     infoModalTitle: "Task Briefing",
     infoModalText: `<p>Here you will use an online text editor with an AI toolset.</p>
 
-<p>The AI toolset supports you with summarizing, extending, and translating text within the editor. Furthermore, you can specify an AI action on your own using the prompt tool. By highlighting parts of the text and selecting the AI tool from the floating toolbar, an AI action will be applied to your text. See the video below for a short demonstration.</p>
+<p>The AI toolset supports you with summarizing, extending, and translating text within the editor. Furthermore, you can specify an AI action on your own using the prompt tool. By selecting parts of the text and using the AI tool from the floating toolbar, an AI action will be applied to your text. See the video below for a short demonstration.</p>
  
 <div>
 <video controls style="width: 100%">
