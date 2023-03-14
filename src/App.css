@@ -70,13 +70,13 @@ html, body {
 
 .ck.ck-toolbar {
   background: #fff;
-  margin-left: 1rem;
+  margin-left: 1rem !important;
 }
 
 /* Adjust the look of the toolbar inside the container. */
 .document-editor__toolbar .ck-toolbar {
-  border: 0;
-  border-radius: 0;
+  border: 0 !important;
+  border-radius: 0 !important;
 }
 
 /* Make the editable container look like the inside of a native word processor application. */
