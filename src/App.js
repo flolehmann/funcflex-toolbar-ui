@@ -186,7 +186,7 @@ function App() {
     const urlParams = new URLSearchParams(queryString);
     const studyId = urlParams.has("study_id") ? urlParams.get("study_id") : 0;
 
-    const [isReady, studyAlignLib, logger] = useLogger("appLogger", "https://hciaitools.uni-bayreuth.de/study-align", studyId);
+    const [isReady, studyAlignLib, logger] = useLogger("appLogger", "URL_TO_LOGGING", studyId);
 
     const [wordCount, setWordCount] = useState(0);
     const [charCount, setCharCount] = useState(0);

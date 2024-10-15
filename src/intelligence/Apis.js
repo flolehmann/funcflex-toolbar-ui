@@ -1,27 +1,21 @@
 const APIS = {
     rasa: {
-        url: "https://btn6xd.inf.uni-bayreuth.de/collabo-writing-rasa",
-        parser_url: "https://btn6xd.inf.uni-bayreuth.de/collabo-writing-rasa/model/parse"
+        url: "YOUR_RASA_URL",
+        parser_url: "YOUR_RASA_URL/model/parse"
     },
     t5: {
-        url: "https://btn6xd.inf.uni-bayreuth.de/t5/api/v1/predict"
-    },
-    bert2bert: {
-        url: "https://btn6xd.inf.uni-bayreuth.de/bert2bert/api/v1/predict"
+        url: "YOUR_T5_URL"
     },
     gptneo: {
-        url: "https://btn6xd.inf.uni-bayreuth.de/gptneo/api/v1/predict"
+        url: "YOUR_GPTNEO_URL"
     },
     opus_mt: {
-        url: "https://btn6xd.inf.uni-bayreuth.de/opus/api/v1/predict"
+        url: "YOUR_OPUSMT_URL"
     },
     gpt_3: {
         url: "https://api.openai.com/v1/completions",
-        //model: "text-davinci-003",
         model: "gpt-3.5-turbo-instruct",
         key: process.env.REACT_APP_OPENAI_KEY
-        //key: "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"
-        //key: "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"
     }
 };
 

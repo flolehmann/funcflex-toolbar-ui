@@ -1,10 +1,49 @@
-# .env file needed containing the OpenAI API Key:
+# Toolbar UI Prototype, as part of the paper "Functional Flexibility in Generative AI Interfaces"
 
-`REACT_APP_OPENAI_KEY = "YOUR KEY"`
+This prototype allows to use specified and flexible AI functions on text documents via interactive comments.
 
-# Getting Started with Create React App
+See the paper on arxiv: https://arxiv.org/abs/2410.10644
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Run the prototype locally
+
+This prototype has been build in 2022 and thus runs on Node version 12.22.12 and npm 6.14.16. Please note,
+that we did not update the dependencies, and it might be unsafe to run this project online.
+
+If you plan to run the prototype locally follow these steps:
+
+1. Install node version `erbium`, e.g. use nvm: `nvm install 12.22.12`
+2. Activate the node version: `nvm use 12.22.12`
+3. Install dependencies `npm install`
+4. Run the project: `npm run start`
+
+The prototype will be available in your browser, e.g. at `http://localhost:3000/`
+
+To enable the AI toolbar:
+
+1. Start the model APIs:
+    - OPUS-MT: https://github.com/flolehmann/funcflex-modelapi-opusmt
+    - T5: https://github.com/flolehmann/funcflex-modelapi-t5
+    - GPT-neo: https://github.com/flolehmann/funcflex-modelapi-gptneo
+2. Create a .env file with your OpenAI API key `REACT_APP_OPENAI_KEY = "YOUR KEY"`
+
+Finally, put the URLs to the model APIs into the [Apis.js](src%2Fintelligence%2FApis.js)
+
+You are all set! Have fun using the prototype!
+
+## Deploy the prototype for experimental purpose
+
+You can use docker-compose to deploy the prototype for experimental purpose.
+Use the existing [docker-compose.toolset.prod.yml](docker-compose.toolset.prod.yml) as a basis for doing so.
+
+Just execute `docker-compose -f docker-compose.toolset.prod.yml up -d` to run a dockerized version of the project.
+
+
+
+
+
+# We initiated this project with create React app:
+
+#Getting Started with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
 
